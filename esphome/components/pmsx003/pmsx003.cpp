@@ -48,30 +48,30 @@ void PMSX003Component::set_formaldehyde_sensor(sensor::Sensor *formaldehyde_sens
 }
 
 void PMSX003Component::set_type(PMSX003Type type) {
-  this->type_ = type;
-  switch (this->type_) {
+  type_ = type;
+  switch (type_) {
     case PMSX003_TYPE_5003ST:
-      this->cap_pm_1_25_10 = 1;
-      this->cap_temperature = 1;
-      this->cap_humidity = 1;
-      this->cap_formaldehyde = 1;
+      cap_pm_1_25_10 = 1;
+      cap_temperature = 1;
+      cap_humidity = 1;
+      cap_formaldehyde = 1;
       break;
     case PMSX003_TYPE_X003:
-      this->cap_pm_1_25_10 = 1;
+      cap_pm_1_25_10 = 1;
       break;
     case PMSX003_TYPE_5003T:
-      this->cap_pm_2_5 = 1;
-      this->cap_temperature = 1;
-      this->cap_humidity = 1;
+      cap_pm_2_5 = 1;
+      cap_temperature = 1;
+      cap_humidity = 1;
       break;
     case PMSX003_TYPE_5003S:
-      this->cap_pm_1_25_10 = 1;
-      this->cap_formaldehyde = 1;
+      cap_pm_1_25_10 = 1;
+      cap_formaldehyde = 1;
       break;
     case PMSX003_TYPE_7003T:
-      this->cap_pm_1_25_10 = 1;
-      this->cap_temperature = 1;
-      this->cap_humidity = 1;
+      cap_pm_1_25_10 = 1;
+      cap_temperature = 1;
+      cap_humidity = 1;
       break;
   }
 }
