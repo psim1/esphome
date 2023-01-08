@@ -47,7 +47,7 @@ void PMSX003Component::set_formaldehyde_sensor(sensor::Sensor *formaldehyde_sens
   formaldehyde_sensor_ = formaldehyde_sensor;
 }
 
-void set_type(PMSX003Type type) {
+void PMSX003Component::set_type(PMSX003Type type) {
   this->type_ = type;
   switch (this->type_) {
     case PMSX003_TYPE_5003ST:
@@ -284,6 +284,7 @@ void PMSX003Component::parse_data_() {
     if (this->formaldehyde_sensor_ != nullptr)
       this->formaldehyde_sensor_->publish_state(formaldehyde);
   }
+
   if (this->cap_temperature == 1) {
     float temperature = this->get_16_bit_uint_(30) / 10.0f;
     float humidity = this->get_16_bit_uint_(32) / 10.0f;
