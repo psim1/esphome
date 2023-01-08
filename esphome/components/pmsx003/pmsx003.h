@@ -19,6 +19,7 @@ enum PMSX003Type {
   PMSX003_TYPE_5003T,
   PMSX003_TYPE_5003ST,
   PMSX003_TYPE_5003S,
+  PMSX003_TYPE_7003T,
 };
 
 enum PMSX003State {
@@ -34,7 +35,7 @@ class PMSX003Component : public uart::UARTDevice, public Component {
   float get_setup_priority() const override;
   void dump_config() override;
 
-  void set_type(PMSX003Type type) { type_ = type; }
+  void set_type(PMSX003Type type);
 
   void set_update_interval(uint32_t val) { update_interval_ = val; };
 
@@ -72,6 +73,13 @@ class PMSX003Component : public uart::UARTDevice, public Component {
   uint32_t update_interval_{0};
   PMSX003State state_{PMSX003_STATE_IDLE};
   PMSX003Type type_;
+
+  // Capabilites of the sensors
+  uint8_t cap_pm_2_5{0};
+  uint8_t cap_pm_1_25_10{0};
+  uint8_t cap_temperature{0};
+  uint8_t cap_humidity{0};
+  uint8_t cap_formaldehyde{0};
 
   // "Standard Particle"
   sensor::Sensor *pm_1_0_std_sensor_{nullptr};
