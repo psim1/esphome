@@ -146,6 +146,7 @@ void PMSX003Component::loop() {
   }
 }
 float PMSX003Component::get_setup_priority() const { return setup_priority::DATA; }
+
 optional<bool> PMSX003Component::check_byte_() {
   uint8_t index = this->data_index_;
   uint8_t byte = this->data_[index];
@@ -296,20 +297,21 @@ void PMSX003Component::parse_data_() {
     if (this->humidity_sensor_ != nullptr)
       this->humidity_sensor_->publish_state(humidity);
   }
+
+  // Spin down the sensor again if we aren't going to need it until more time has
+  // passed than it takes to stabilise
+  if (this->update_interval_ > PMS_STABILISING_MS) {
+    this->send_command_(PMS_CMD_ON_STANDBY, 0);
+    this->state_ = PMSX003_STATE_IDLE;
+  }
+
+  this->status_clear_warning();
 }
 
-// Spin down the sensor again if we aren't going to need it until more time has
-// passed than it takes to stabilise
-if (this->update_interval_ > PMS_STABILISING_MS) {
-  this->send_command_(PMS_CMD_ON_STANDBY, 0);
-  this->state_ = PMSX003_STATE_IDLE;
-}
-
-this->status_clear_warning();
-}
 uint16_t PMSX003Component::get_16_bit_uint_(uint8_t start_index) {
   return (uint16_t(this->data_[start_index]) << 8) | uint16_t(this->data_[start_index + 1]);
 }
+
 void PMSX003Component::dump_config() {
   ESP_LOGCONFIG(TAG, "PMSX003:");
   LOG_SENSOR("  ", "PM1.0STD", this->pm_1_0_std_sensor_);
