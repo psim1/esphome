@@ -78,7 +78,7 @@ class PMSX003Component : public uart::UARTDevice, public Component {
   uint8_t cap_pm_2_5{0};
   uint8_t cap_pm_1_25_10{0};
   uint8_t cap_temperature{0};
-  uint8_t cap_humidity{0};
+  uint8_t cap_temperature_alt{0};
   uint8_t cap_formaldehyde{0};
 
   // "Standard Particle"

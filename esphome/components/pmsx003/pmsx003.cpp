@@ -53,7 +53,6 @@ void PMSX003Component::set_type(PMSX003Type type) {
     case PMSX003_TYPE_5003ST:
       cap_pm_1_25_10 = 1;
       cap_temperature = 1;
-      cap_humidity = 1;
       cap_formaldehyde = 1;
       break;
     case PMSX003_TYPE_X003:
@@ -61,8 +60,7 @@ void PMSX003Component::set_type(PMSX003Type type) {
       break;
     case PMSX003_TYPE_5003T:
       cap_pm_2_5 = 1;
-      cap_temperature = 1;
-      cap_humidity = 1;
+      cap_temperature_alt = 1;
       break;
     case PMSX003_TYPE_5003S:
       cap_pm_1_25_10 = 1;
@@ -70,8 +68,7 @@ void PMSX003Component::set_type(PMSX003Type type) {
       break;
     case PMSX003_TYPE_7003T:
       cap_pm_1_25_10 = 1;
-      cap_temperature = 1;
-      cap_humidity = 1;
+      cap_temperature_alt = 1;
       break;
   }
 }
@@ -289,6 +286,16 @@ void PMSX003Component::parse_data_() {
   if (this->cap_temperature == 1) {
     float temperature = this->get_16_bit_uint_(30) / 10.0f;
     float humidity = this->get_16_bit_uint_(32) / 10.0f;
+
+    ESP_LOGD(TAG, "Got Temperature: %.1f°C, Humidity: %.1f%%", temperature, humidity);
+
+    if (this->temperature_sensor_ != nullptr)
+      this->temperature_sensor_->publish_state(temperature);
+    if (this->humidity_sensor_ != nullptr)
+      this->humidity_sensor_->publish_state(humidity);
+  } else if (this->cap_temperature_alt == 1) {
+    float temperature = this->get_16_bit_uint_(24) / 10.0f;
+    float humidity = this->get_16_bit_uint_(26) / 10.0f;
 
     ESP_LOGD(TAG, "Got Temperature: %.1f°C, Humidity: %.1f%%", temperature, humidity);
 
