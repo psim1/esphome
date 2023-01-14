@@ -54,13 +54,17 @@ void PMSX003Component::set_type(PMSX003Type type) {
       cap_pm_1_25_10 = 1;
       cap_temperature = 1;
       cap_formaldehyde = 1;
+      temperature_register = 30;
+      humidity_register = 32;
       break;
     case PMSX003_TYPE_X003:
       cap_pm_1_25_10 = 1;
       break;
     case PMSX003_TYPE_5003T:
       cap_pm_2_5 = 1;
-      cap_temperature_alt = 1;
+      cap_temperature = 1;
+      temperature_register = 24;
+      humidity_register = 26;
       break;
     case PMSX003_TYPE_5003S:
       cap_pm_1_25_10 = 1;
@@ -68,7 +72,9 @@ void PMSX003Component::set_type(PMSX003Type type) {
       break;
     case PMSX003_TYPE_7003T:
       cap_pm_1_25_10 = 1;
-      cap_temperature_alt = 1;
+      cap_temperature = 1;
+      temperature_register = 24;
+      humidity_register = 26;
       break;
   }
 }
@@ -157,7 +163,7 @@ optional<bool> PMSX003Component::check_byte_() {
   if (index == 2)
     return true;
 
-  uint16_t payload_length = this->get_16_bit_uint_(2);
+  payload_length = this->get_16_bit_uint_(2);
   if (index == 3) {
     bool length_matches = false;
     switch (this->type_) {
@@ -221,13 +227,13 @@ void PMSX003Component::send_command_(uint8_t cmd, uint16_t data) {
 }
 
 void PMSX003Component::parse_data_() {
-  if (this->cap_pm_2_5 == 1) {
+  if (this->cap_pm_2_5) {
     uint16_t pm_2_5_concentration = this->get_16_bit_uint_(12);
     ESP_LOGD(TAG, "Got PM2.5 Concentration: %u µg/m^3", pm_2_5_concentration);
     if (this->pm_2_5_sensor_ != nullptr)
       this->pm_2_5_sensor_->publish_state(pm_2_5_concentration);
 
-  } else if (this->cap_pm_1_25_10 == 1) {
+  } else if (this->cap_pm_1_25_10) {
     uint16_t pm_1_0_std_concentration = this->get_16_bit_uint_(4);
     uint16_t pm_2_5_std_concentration = this->get_16_bit_uint_(6);
     uint16_t pm_10_0_std_concentration = this->get_16_bit_uint_(8);
@@ -240,8 +246,11 @@ void PMSX003Component::parse_data_() {
     uint16_t pm_particles_05um = this->get_16_bit_uint_(18);
     uint16_t pm_particles_10um = this->get_16_bit_uint_(20);
     uint16_t pm_particles_25um = this->get_16_bit_uint_(22);
-    uint16_t pm_particles_50um = this->get_16_bit_uint_(24);
-    uint16_t pm_particles_100um = this->get_16_bit_uint_(26);
+    // registers used by temperature/humidity for some models
+    if (!this->cap_temperature || (this->cap_temperature && payload_length > 28)) {
+      uint16_t pm_particles_50um = this->get_16_bit_uint_(24);
+      uint16_t pm_particles_100um = this->get_16_bit_uint_(26);
+    }
 
     ESP_LOGD(TAG, "Got PM1.0 Concentration: %u µg/m^3, PM2.5 Concentration %u µg/m^3, PM10.0 Concentration: %u µg/m^3",
              pm_1_0_concentration, pm_2_5_concentration, pm_10_0_concentration);
@@ -274,7 +283,7 @@ void PMSX003Component::parse_data_() {
       this->pm_particles_100um_sensor_->publish_state(pm_particles_100um);
   }
 
-  if (this->cap_formaldehyde == 1) {
+  if (this->cap_formaldehyde) {
     uint16_t formaldehyde = this->get_16_bit_uint_(28);
 
     ESP_LOGD(TAG, "Got Formaldehyde: %u µg/m^3", formaldehyde);
@@ -283,19 +292,9 @@ void PMSX003Component::parse_data_() {
       this->formaldehyde_sensor_->publish_state(formaldehyde);
   }
 
-  if (this->cap_temperature == 1) {
-    float temperature = this->get_16_bit_uint_(30) / 10.0f;
-    float humidity = this->get_16_bit_uint_(32) / 10.0f;
-
-    ESP_LOGD(TAG, "Got Temperature: %.1f°C, Humidity: %.1f%%", temperature, humidity);
-
-    if (this->temperature_sensor_ != nullptr)
-      this->temperature_sensor_->publish_state(temperature);
-    if (this->humidity_sensor_ != nullptr)
-      this->humidity_sensor_->publish_state(humidity);
-  } else if (this->cap_temperature_alt == 1) {
-    float temperature = this->get_16_bit_uint_(24) / 10.0f;
-    float humidity = this->get_16_bit_uint_(26) / 10.0f;
+  if (this->cap_temperature) {
+    float temperature = this->get_16_bit_uint_(temperature_register) / 10.0f;
+    float humidity = this->get_16_bit_uint_(humidity_register) / 10.0f;
 
     ESP_LOGD(TAG, "Got Temperature: %.1f°C, Humidity: %.1f%%", temperature, humidity);
 
@@ -339,6 +338,7 @@ void PMSX003Component::dump_config() {
   LOG_SENSOR("  ", "Temperature", this->temperature_sensor_);
   LOG_SENSOR("  ", "Humidity", this->humidity_sensor_);
   LOG_SENSOR("  ", "Formaldehyde", this->formaldehyde_sensor_);
+  LOG_SENSOR("  ", "Payload length", this->payload_length);
   this->check_uart_settings(9600);
 }
 
