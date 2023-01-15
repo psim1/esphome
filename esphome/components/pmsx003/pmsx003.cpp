@@ -187,7 +187,6 @@ optional<bool> PMSX003Component::check_byte_() {
       ESP_LOGW(TAG, "PMSX003 length %u doesn't match. Are you using the correct PMSX003 type?", payload_length);
       return false;
     }
-    ESP_LOGW(TAG, "PMSX003 payload length %u", payload_length);
     return true;
   }
 
