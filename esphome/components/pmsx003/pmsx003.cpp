@@ -187,6 +187,7 @@ optional<bool> PMSX003Component::check_byte_() {
       ESP_LOGW(TAG, "PMSX003 length %u doesn't match. Are you using the correct PMSX003 type?", payload_length);
       return false;
     }
+    ESP_LOGW(TAG, "PMSX003 payload length %u", payload_length);
     return true;
   }
 
@@ -250,8 +251,8 @@ void PMSX003Component::parse_data_() {
     uint16_t pm_particles_10um = this->get_16_bit_uint_(20);
     uint16_t pm_particles_25um = this->get_16_bit_uint_(22);
     // registers used by temperature/humidity for some models
-    uint16_t pm_particles_50um = 0;
-    uint16_t pm_particles_100um = 0;
+    uint16_t pm_particles_50um = NULL;
+    uint16_t pm_particles_100um = NULL;
     if (cap_particle_50_100) {
       pm_particles_50um = this->get_16_bit_uint_(24);
       pm_particles_100um = this->get_16_bit_uint_(26);
@@ -345,7 +346,6 @@ void PMSX003Component::dump_config() {
   LOG_SENSOR("  ", "Temperature", this->temperature_sensor_);
   LOG_SENSOR("  ", "Humidity", this->humidity_sensor_);
   LOG_SENSOR("  ", "Formaldehyde", this->formaldehyde_sensor_);
-  LOG_SENSOR("  ", "Payload length", this->payload_length);
   this->check_uart_settings(9600);
 }
 
