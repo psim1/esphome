@@ -77,6 +77,7 @@ class PMSX003Component : public uart::UARTDevice, public Component {
   // Capabilites of the sensors
   uint8_t cap_pm_2_5{0};
   uint8_t cap_pm_1_25_10{0};
+  uint8_t cap_particle_50_100{0};
   uint8_t cap_temperature{0};
   uint8_t cap_formaldehyde{0};
   // 20, 28 or 36
