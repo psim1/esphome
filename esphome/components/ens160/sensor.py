@@ -78,8 +78,10 @@ async def to_code(config):
     cg.add(var.set_co2(sens))
     sens = await sensor.new_sensor(config[CONF_TVOC])
     cg.add(var.set_tvoc(sens))
-    sens = await sensor.new_sensor(config[CONF_AQI])
-    cg.add(var.set_aqi(sens))
+
+    if CONF_AQI in config:
+        sens = await sensor.new_sensor(config[CONF_AQI])
+        cg.add(var.set_aqi(sens))
 
     if CONF_COMPENSATION in config:
         compensation_config = config[CONF_COMPENSATION]
