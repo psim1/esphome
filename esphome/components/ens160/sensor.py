@@ -21,9 +21,7 @@ from esphome.const import (
 CODEOWNERS = ["@vincentscode"]
 DEPENDENCIES = ["i2c"]
 
-CONF_AQI = ["aqi"]
-CONF_CALCULATION_TYPE = ["calculation_type"]
-UNIT_INDEX = ["index"]
+CONF_AQI = "aqi"
 
 ens160_ns = cg.esphome_ns.namespace("ens160")
 ENS160Component = ens160_ns.class_(
