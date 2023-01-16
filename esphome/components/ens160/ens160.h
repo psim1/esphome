@@ -24,6 +24,8 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
  protected:
   void send_env_data_();
 
+  uint16_t read_u16_le_(uint8_t a_register);
+
   enum ErrorCode {
     NONE = 0,
     COMMUNICATION_FAILED,
