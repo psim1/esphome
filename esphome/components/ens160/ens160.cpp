@@ -48,6 +48,7 @@ static const uint8_t ENS160_DATA_STATUS_NEWGPR = 0x01;
 // helps remove reserved bits in aqi data register
 static const uint8_t ENS160_DATA_AQI = 0x07;
 
+
 void ENS160Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ENS160...");
 
