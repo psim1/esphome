@@ -27,13 +27,15 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
   uint8_t read_u8_(uint8_t a_register);
 
   enum Operation {
-    HW_ID = 0x00,
-    SET_TEMP = 0x13,
-    SET_RH = 0x15,
-    DATA_AQI = 0x21,
-    DATA_TVOC = 0x22,
-    DATA_ECO2 = 0x24,
-    DEVICE_STATUS = 0x20,
+    HW_ID = 0x00,  // 2 byte Device Identity 0x01, 0x60
+    SET_OPMODE = 0x10,
+    SEND_COMMAND = 0x12,
+    SET_TEMP = 0x13,       // 2 bytes Host Ambient Temperature Information
+    SET_RH = 0x15,         // 2 bytes Host Relative Humidity Information
+    DATA_AQI = 0x21,       // 1 byte Air Quality Index - range from 0 to 7, values from 1 to 5
+    DATA_TVOC = 0x22,      // 2 bytes TVOC Concentration (ppb). Range 0 to 65,000
+    DATA_ECO2 = 0x24,      // 2 bytes Equivalent CO2 Concentration (ppm). Range 400 to 65,000
+    DEVICE_STATUS = 0x20,  // 1 byte Operating Mode
   };
 
   enum ErrorCode {
