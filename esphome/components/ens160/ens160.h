@@ -50,6 +50,37 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
   uint8_t firmware_ver_minor_{0};
   uint8_t firmware_ver_build_{0};
 
+  enum DataValidity {
+    OK = 0,
+    WARM_UP,
+    START_UP,
+    INVALID
+  }
+
+  enum OpMode {
+    DEEP_SLEEP = 0,
+    IDLE,
+    SENSING_MODE,
+    RESET = 0xf0
+  }
+
+  enum Command {
+    NOP = 0,
+    GET_APPVER = 0x0e,
+    CLEAR_REGISTERS = 0xcc
+  }
+
+  enum GPRRead{
+    Register0 = 0x48,
+    Register1,
+    Register2,
+    Register3,
+    Register4,
+    Register5,
+    Register6,
+    Register7,
+  }
+  
   sensor::Sensor *co2_{nullptr};
   sensor::Sensor *tvoc_{nullptr};
   sensor::Sensor *aqi_{nullptr};
