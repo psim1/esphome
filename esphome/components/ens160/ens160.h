@@ -29,7 +29,10 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
   enum Operation {
     HW_ID = 0x00,
     SET_TEMP = 0x13,
-    STE_RH = 0x15,
+    SET_RH = 0x15,
+    DATA_AQI = 0x21,
+    DATA_TVOC = 0x22,
+    DATA_ECO2 = 0x24,
     DEVICE_STATUS = 0x20,
   };
 
