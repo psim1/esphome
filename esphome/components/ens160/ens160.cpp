@@ -316,10 +316,18 @@ void ENS160Component::dump_config() {
     ESP_LOGCONFIG(TAG, "  Compensation: Not configured");
   }
 }
+
 uint16_t ENS160Component::read_u16_le_(uint8_t a_register) {
   uint16_t data = 0;
   this->read_byte_16(a_register, &data);
   return (data >> 8) | (data << 8);
 }
+
+uint16_t ENS160Component::read_u8_(uint8_t a_register) {
+  uint8_t data = 0;
+  this->read_byte(a_register, &data, 1);
+  return (data);
+}
+
 }  // namespace ens160
 }  // namespace esphome
