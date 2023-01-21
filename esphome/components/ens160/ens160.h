@@ -64,7 +64,7 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
     RESET = 0xf0
   };
 
-  enum Command {
+  enum SendCommand {
     NOP = 0,
     GET_APPVER = 0x0e,
     CLEAR_REGISTERS = 0xcc
