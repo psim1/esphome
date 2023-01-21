@@ -55,20 +55,20 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
     WARM_UP,
     START_UP,
     INVALID
-  }
+  };
 
   enum OpMode {
     DEEP_SLEEP = 0,
     IDLE,
     SENSING_MODE,
     RESET = 0xf0
-  }
+  };
 
   enum Command {
     NOP = 0,
     GET_APPVER = 0x0e,
     CLEAR_REGISTERS = 0xcc
-  }
+  };
 
   enum GPRRead{
     Register0 = 0x48,
@@ -79,7 +79,7 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
     Register5,
     Register6,
     Register7,
-  }
+  };
   
   sensor::Sensor *co2_{nullptr};
   sensor::Sensor *tvoc_{nullptr};
