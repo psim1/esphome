@@ -26,11 +26,12 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
   uint16_t read_u16_le_(uint8_t a_register);
   uint8_t read_u8_(uint8_t a_register);
 
-enum Operation{
-  HW_ID = 0x00,
-
-  DEVICE_STATUS = 0x20,
-}
+  enum Operation {
+    HW_ID = 0x00,
+    SET_TEMP = 0x13,
+    STE_RH = 0x15,
+    DEVICE_STATUS = 0x20,
+  };
 
   enum ErrorCode {
     NONE = 0,
