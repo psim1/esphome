@@ -29,6 +29,7 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
   enum Operation {
     HW_ID = 0x00,  // 2 byte Device Identity 0x01, 0x60
     SET_OPMODE = 0x10,
+    SET_CONFIG = 0x11,
     SEND_COMMAND = 0x12,
     SET_TEMP = 0x13,       // 2 bytes Host Ambient Temperature Information
     SET_RH = 0x15,         // 2 bytes Host Relative Humidity Information
