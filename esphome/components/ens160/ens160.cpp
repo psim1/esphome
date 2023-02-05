@@ -50,8 +50,8 @@ static const uint8_t ENS160_DATA_AQI = 0x07;
 
 #define SET_MODE(m) \
   CHECKED_IO(this->write_byte(Operation::OPMODE, (m))) \
-  delay(1); \
-  CHECK_TRUE(this->read_u8_(Operation::OPMODE) == (m), OPMODE_FAILED)
+  CHECK_TRUE(this->read_u8_(Operation::OPMODE) == (m), OPMODE_FAILED) \
+  delay(10);
 
 void ENS160Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ENS160...");
