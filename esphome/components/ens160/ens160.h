@@ -26,11 +26,7 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
   uint16_t read_u16_le_(uint8_t a_register);
   uint8_t read_u8_(uint8_t a_register);
 
-  enum Status {
-    HAS_ERROR = 0b01000000,
-    NEW_DATA = 0b0010,
-    NEW_GPRDATA = 0b0001,
-  };
+  enum Status { HAS_ERROR = 0b01000000, NEW_DATA = 0b00000010, NEW_GPRDATA = 0b00000001 };
 
   enum Operation {
     HW_ID = 0x00,  // 2 byte Device Identity 0x01, 0x60
@@ -42,7 +38,7 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
     DEVICE_STATUS = 0x20,  // 1 byte Operating Mode
     DATA_AQI = 0x21,       // 1 byte Air Quality Index - range from 0 to 7, values from 1 to 5
     DATA_TVOC = 0x22,      // 2 bytes TVOC Concentration (ppb). Range 0 to 65,000
-    DATA_ECO2 = 0x24,      // 2 bytes Equivalent CO2 Concentration (ppm). Range 400 to 65,000
+    DATA_ECO2 = 0x24       // 2 bytes Equivalent CO2 Concentration (ppm). Range 400 to 65,000
   };
 
   enum ErrorCode {
