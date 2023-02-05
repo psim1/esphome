@@ -30,7 +30,7 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
     HAS_ERROR = 0b01000000,
     NEW_DATA = 0b0010,
     NEW_GPRDATA = 0b0001,
-  }
+  };
 
   enum Operation {
     HW_ID = 0x00,  // 2 byte Device Identity 0x01, 0x60
