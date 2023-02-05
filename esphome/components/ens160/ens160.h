@@ -28,15 +28,15 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
 
   enum Operation {
     HW_ID = 0x00,  // 2 byte Device Identity 0x01, 0x60
-    SET_OPMODE = 0x10,
-    SET_CONFIG = 0x11,
-    SEND_COMMAND = 0x12,
-    SET_TEMP = 0x13,       // 2 bytes Host Ambient Temperature Information
-    SET_RH = 0x15,         // 2 bytes Host Relative Humidity Information
+    OPMODE = 0x10,
+    CONFIG = 0x11,
+    COMMAND = 0x12,
+    TEMP_IN = 0x13,        // 2 bytes Host Ambient Temperature Information
+    RH_IN = 0x15,          // 2 bytes Host Relative Humidity Information
+    DEVICE_STATUS = 0x20,  // 1 byte Operating Mode
     DATA_AQI = 0x21,       // 1 byte Air Quality Index - range from 0 to 7, values from 1 to 5
     DATA_TVOC = 0x22,      // 2 bytes TVOC Concentration (ppb). Range 0 to 65,000
     DATA_ECO2 = 0x24,      // 2 bytes Equivalent CO2 Concentration (ppm). Range 400 to 65,000
-    DEVICE_STATUS = 0x20,  // 1 byte Operating Mode
   };
 
   enum ErrorCode {
@@ -63,11 +63,11 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
   uint8_t firmware_ver_minor_{0};
   uint8_t firmware_ver_build_{0};
 
-  enum DataValidity { OK = 0, WARM_UP, START_UP, INVALID };
+  enum DataValidity { OK = 0, WARM_UP = 1, START_UP = 2, INVALID = 3 };
 
-  enum OpMode { DEEP_SLEEP = 0, IDLE, SENSING_MODE, RESET = 0xF0 };
+  enum OpMode { DEEP_SLEEP = 0, IDLE = 0x01, SENSING_MODE = 0x02, RESET = 0xF0 };
 
-  enum SendCommand { NOP = 0, GET_APPVER = 0x0E, CLEAR_REGISTERS = 0xCC };
+  enum Command { NOP = 0, GET_APPVER = 0x0E, CLEAR_REGISTERS = 0xCC };
 
   enum GPRRead {
     Register0 = 0x48,
