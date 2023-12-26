@@ -23,24 +23,6 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
  protected:
   void send_env_data_();
 
-  uint16_t read_u16_le_(uint8_t a_register);
-  uint8_t read_u8_(uint8_t a_register);
-
-  enum Status { HAS_ERROR = 0b01000000, NEW_DATA = 0b00000010, NEW_GPRDATA = 0b00000001 };
-
-  enum Operation {
-    HW_ID = 0x00,  // 2 byte Device Identity 0x01, 0x60
-    OPMODE = 0x10,
-    CONFIG = 0x11,
-    COMMAND = 0x12,
-    TEMP_IN = 0x13,        // 2 bytes Host Ambient Temperature Information
-    RH_IN = 0x15,          // 2 bytes Host Relative Humidity Information
-    DEVICE_STATUS = 0x20,  // 1 byte Operating Mode
-    DATA_AQI = 0x21,       // 1 byte Air Quality Index - range from 0 to 7, values from 1 to 5
-    DATA_TVOC = 0x22,      // 2 bytes TVOC Concentration (ppb). Range 0 to 65,000
-    DATA_ECO2 = 0x24       // 2 bytes Equivalent CO2 Concentration (ppm). Range 400 to 65,000
-  };
-
   enum ErrorCode {
     NONE = 0,
     COMMUNICATION_FAILED,
@@ -65,22 +47,19 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
   uint8_t firmware_ver_minor_{0};
   uint8_t firmware_ver_build_{0};
 
-  enum DataValidity { OK = 0, WARM_UP = 1, START_UP = 2, INVALID = 3 };
+  enum ValidityFlag {
+    NORMAL_OPERATION = 0,
+    WARMING_UP,
+    INITIAL_STARTUP,
+    INVALID_OUTPUT,
+  } validity_flag_;
 
-  enum OpMode { DEEP_SLEEP = 0, IDLE = 0x01, SENSING_MODE = 0x02, RESET = 0xF0 };
+  bool warming_up_{false};
+  bool initial_startup_{false};
 
-  enum Command { NOP = 0, GET_APPVER = 0x0E, CLEAR_REGISTERS = 0xCC };
-
-  enum GPRRead {
-    Register0 = 0x48,
-    Register1,
-    Register2,
-    Register3,
-    Register4,
-    Register5,
-    Register6,
-    Register7,
-  };
+  uint8_t firmware_ver_major_{0};
+  uint8_t firmware_ver_minor_{0};
+  uint8_t firmware_ver_build_{0};
 
   sensor::Sensor *co2_{nullptr};
   sensor::Sensor *tvoc_{nullptr};

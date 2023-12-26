@@ -21,8 +21,6 @@ from esphome.const import (
 CODEOWNERS = ["@vincentscode"]
 DEPENDENCIES = ["i2c"]
 
-CONF_AQI = "aqi"
-
 ens160_ns = cg.esphome_ns.namespace("ens160")
 ENS160Component = ens160_ns.class_(
     "ENS160Component", cg.PollingComponent, i2c.I2CDevice, sensor.Sensor
@@ -78,6 +76,8 @@ async def to_code(config):
     cg.add(var.set_co2(sens))
     sens = await sensor.new_sensor(config[CONF_TVOC])
     cg.add(var.set_tvoc(sens))
+    sens = await sensor.new_sensor(config[CONF_AQI])
+    cg.add(var.set_aqi(sens))
 
     if CONF_AQI in config:
         sens = await sensor.new_sensor(config[CONF_AQI])
