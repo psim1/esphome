@@ -48,36 +48,6 @@ static const uint8_t ENS160_DATA_STATUS_NEWGPR = 0x01;
 // helps remove reserved bits in aqi data register
 static const uint8_t ENS160_DATA_AQI = 0x07;
 
-static const uint8_t ENS160_REG_PART_ID = 0x00;
-static const uint8_t ENS160_REG_OPMODE = 0x10;
-static const uint8_t ENS160_REG_CONFIG = 0x11;
-static const uint8_t ENS160_REG_COMMAND = 0x12;
-static const uint8_t ENS160_REG_TEMP_IN = 0x13;
-static const uint8_t ENS160_REG_DATA_STATUS = 0x20;
-static const uint8_t ENS160_REG_DATA_AQI = 0x21;
-static const uint8_t ENS160_REG_DATA_TVOC = 0x22;
-static const uint8_t ENS160_REG_DATA_ECO2 = 0x24;
-
-static const uint8_t ENS160_REG_GPR_READ_0 = 0x48;
-static const uint8_t ENS160_REG_GPR_READ_4 = ENS160_REG_GPR_READ_0 + 4;
-
-static const uint8_t ENS160_COMMAND_NOP = 0x00;
-static const uint8_t ENS160_COMMAND_CLRGPR = 0xCC;
-static const uint8_t ENS160_COMMAND_GET_APPVER = 0x0E;
-
-static const uint8_t ENS160_OPMODE_RESET = 0xF0;
-static const uint8_t ENS160_OPMODE_IDLE = 0x01;
-static const uint8_t ENS160_OPMODE_STD = 0x02;
-
-static const uint8_t ENS160_DATA_STATUS_STATAS = 0x80;
-static const uint8_t ENS160_DATA_STATUS_STATER = 0x40;
-static const uint8_t ENS160_DATA_STATUS_VALIDITY = 0x0C;
-static const uint8_t ENS160_DATA_STATUS_NEWDAT = 0x02;
-static const uint8_t ENS160_DATA_STATUS_NEWGPR = 0x01;
-
-// helps remove reserved bits in aqi data register
-static const uint8_t ENS160_DATA_AQI = 0x07;
-
 void ENS160Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ENS160...");
 
@@ -179,8 +149,6 @@ void ENS160Component::update() {
   if (!this->read_byte(ENS160_REG_DATA_STATUS, &status_value)) {
     ESP_LOGW(TAG, "Error reading status register");
     this->status_set_warning();
- //   return;
- // }
 
   // verbose status logging
   ESP_LOGV(TAG, "Status: ENS160 STATAS bit    0x%x",
