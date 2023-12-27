@@ -347,48 +347,5 @@ void ENS160Component::dump_config() {
   }
 }
 
-void ENS160Component::dump_config() {
-  ESP_LOGCONFIG(TAG, "ENS160:");
-
-  switch (this->error_code_) {
-    case COMMUNICATION_FAILED:
-      ESP_LOGE(TAG, "Communication failed! Is the sensor connected?");
-      break;
-    case READ_FAILED:
-      ESP_LOGE(TAG, "Error reading from register");
-      break;
-    case WRITE_FAILED:
-      ESP_LOGE(TAG, "Error writing to register");
-      break;
-    case INVALID_ID:
-      ESP_LOGE(TAG, "Sensor reported an invalid ID. Is this a ENS160?");
-      break;
-    case VALIDITY_INVALID:
-      ESP_LOGE(TAG, "Invalid Device Status - No valid output");
-      break;
-    case STD_OPMODE_FAILED:
-      ESP_LOGE(TAG, "Device failed to achieve Standard Operating Mode");
-      break;
-    case NONE:
-      ESP_LOGD(TAG, "Setup successful");
-      break;
-  }
-  ESP_LOGI(TAG, "Firmware Version: %d.%d.%d", this->firmware_ver_major_, this->firmware_ver_minor_,
-           this->firmware_ver_build_);
-
-  LOG_I2C_DEVICE(this);
-  LOG_UPDATE_INTERVAL(this);
-  LOG_SENSOR("  ", "CO2 Sensor:", this->co2_);
-  LOG_SENSOR("  ", "TVOC Sensor:", this->tvoc_);
-  LOG_SENSOR("  ", "AQI Sensor:", this->aqi_);
-
-  if (this->temperature_ != nullptr && this->humidity_ != nullptr) {
-    LOG_SENSOR("  ", "  Temperature Compensation:", this->temperature_);
-    LOG_SENSOR("  ", "  Humidity Compensation:", this->humidity_);
-  } else {
-    ESP_LOGCONFIG(TAG, "  Compensation: Not configured");
-  }
-}
-
 }  // namespace ens160
 }  // namespace esphome
