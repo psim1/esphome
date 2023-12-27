@@ -79,10 +79,6 @@ async def to_code(config):
     sens = await sensor.new_sensor(config[CONF_AQI])
     cg.add(var.set_aqi(sens))
 
-    if CONF_AQI in config:
-        sens = await sensor.new_sensor(config[CONF_AQI])
-        cg.add(var.set_aqi(sens))
-
     if CONF_COMPENSATION in config:
         compensation_config = config[CONF_COMPENSATION]
         sens = await cg.get_variable(compensation_config[CONF_TEMPERATURE])

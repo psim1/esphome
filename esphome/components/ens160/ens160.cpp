@@ -149,6 +149,8 @@ void ENS160Component::update() {
   if (!this->read_byte(ENS160_REG_DATA_STATUS, &status_value)) {
     ESP_LOGW(TAG, "Error reading status register");
     this->status_set_warning();
+    return;
+  }
 
   // verbose status logging
   ESP_LOGV(TAG, "Status: ENS160 STATAS bit    0x%x",
