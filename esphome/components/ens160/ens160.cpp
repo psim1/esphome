@@ -51,18 +51,6 @@ static const uint8_t ENS160_DATA_AQI = 0x07;
 void ENS160Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ENS160...");
 
-  /*/ check part_id
-  uint16_t part_id;
-  if (!this->read_bytes(ENS160_REG_PART_ID, reinterpret_cast<uint8_t *>(&part_id), 2)) {
-    this->error_code_ = COMMUNICATION_FAILED;
-    this->mark_failed();
-    return;
-  }
-  if (part_id != ENS160_PART_ID) {
-    this->error_code_ = INVALID_ID;
-    this->mark_failed();
-    return;
-  }*/
   delay(ENS160_BOOTING);
 
   if (!this->reset())
@@ -80,84 +68,9 @@ void ENS160Component::setup() {
   if (!this->getFirmware())
     return;
 
-  /*/ set mode to reset
-  if (!this->write_byte(ENS160_REG_OPMODE, ENS160_OPMODE_RESET)) {
-    this->error_code_ = WRITE_FAILED;
-    this->mark_failed();
-    return;
-  }
-  delay(ENS160_BOOTING);*/
-
-  /*/ check status
-  uint8_t status_value;
-  if (!this->read_byte(ENS160_REG_DATA_STATUS, &status_value)) {
-    this->error_code_ = READ_FAILED;
-    this->mark_failed();
-    return;
-  }
-  this->validity_flag_ = static_cast<ValidityFlag>((ENS160_DATA_STATUS_VALIDITY & status_value) >> 2);
-
-  if (this->validity_flag_ == INVALID_OUTPUT) {
-    this->error_code_ = VALIDITY_INVALID;
-    this->mark_failed();
-    return;
-  }*/
-  /*/ set mode to idle
-  if (!this->write_byte(ENS160_REG_OPMODE, ENS160_OPMODE_IDLE)) {
-    this->error_code_ = WRITE_FAILED;
-    this->mark_failed();
-    return;
-  }*/
-  /*/ clear command
-  if (!this->write_byte(ENS160_REG_COMMAND, ENS160_COMMAND_NOP)) {
-    this->error_code_ = WRITE_FAILED;
-    this->mark_failed();
-    return;
-  }
-  if (!this->write_byte(ENS160_REG_COMMAND, ENS160_COMMAND_CLRGPR)) {
-    this->error_code_ = WRITE_FAILED;
-    this->mark_failed();
-    return;
-  }*/
-
-  /*/ read firmware version
-  if (!this->write_byte(ENS160_REG_COMMAND, ENS160_COMMAND_GET_APPVER)) {
-    this->error_code_ = WRITE_FAILED;
-    this->mark_failed();
-    return;
-  }
-  uint8_t version_data[3];
-  if (!this->read_bytes(ENS160_REG_GPR_READ_4, version_data, 3)) {
-    this->error_code_ = READ_FAILED;
-    this->mark_failed();
-    return;
-  }
-  this->firmware_ver_major_ = version_data[0];
-  this->firmware_ver_minor_ = version_data[1];
-  this->firmware_ver_build_ = version_data[2];*/
-
   // set mode to standard
-  if (!this->setMode(ENS160_OPMODE_STD))
-    return;
-  /* if (!this->write_byte(ENS160_REG_OPMODE, ENS160_OPMODE_STD)) {
-     this->error_code_ = WRITE_FAILED;
-     this->mark_failed();
-     return;
-   }
-
-   // read opmode and check standard mode is achieved before finishing Setup
-   uint8_t op_mode;
-   if (!this->read_byte(ENS160_REG_OPMODE, &op_mode)) {
-     this->error_code_ = READ_FAILED;
-     this->mark_failed();
-     return;
-   }
-
-   if (op_mode != ENS160_OPMODE_STD) {
-     this->error_code_ = STD_OPMODE_FAILED;
-     this->mark_failed();
-     return;
-   }*/
+  //if (!this->setMode(ENS160_OPMODE_STD))
+  //  return;
 }
 
 // Sends a reset to the ENS160. Returns false on I2C problems.
