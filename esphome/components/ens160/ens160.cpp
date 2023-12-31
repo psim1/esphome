@@ -69,8 +69,8 @@ void ENS160Component::setup() {
     return;
 
   // set mode to standard
-  // if (!this->setMode(ENS160_OPMODE_STD))
-  //  return;
+  if (!this->setMode(ENS160_OPMODE_STD))
+    return;
 }
 
 // Sends a reset to the ENS160. Returns false on I2C problems.
@@ -223,11 +223,12 @@ void ENS160Component::update() {
       if (data_ready != ENS160_DATA_STATUS_NEWDAT) {
         ESP_LOGD(TAG, "ENS160 readings unavailable - Normal Operation but readings not ready.");
         this->retry_counter_++;
-        if (this->retry_counter_ < 10)
+        if (this->retry_counter_ < 5)
           return;
         else
           this->retry_counter_ = 0;
       }
+      ESP_LOGD(TAG, "ENS160 readings unavailable - Reading data anyway.");
       break;
     case INITIAL_STARTUP:
       if (!this->initial_startup_) {
