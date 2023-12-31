@@ -51,7 +51,7 @@ static const uint8_t ENS160_DATA_AQI = 0x07;
 void ENS160Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ENS160...");
 
-  // check part_id
+  /*/ check part_id
   uint16_t part_id;
   if (!this->read_bytes(ENS160_REG_PART_ID, reinterpret_cast<uint8_t *>(&part_id), 2)) {
     this->error_code_ = COMMUNICATION_FAILED;
@@ -62,17 +62,33 @@ void ENS160Component::setup() {
     this->error_code_ = INVALID_ID;
     this->mark_failed();
     return;
-  }
+  }*/
+  delay(ENS160_BOOTING);
 
-  // set mode to reset
+  if (!this->reset())
+    return;
+
+  if (!this->checkPartID())
+    return;
+
+  if (!this->setMode(ENS160_OPMODE_IDLE))
+    return;
+
+  if (!this->clearCommand())
+    return;
+
+  if (!this->getFirmware())
+    return;
+
+  /*/ set mode to reset
   if (!this->write_byte(ENS160_REG_OPMODE, ENS160_OPMODE_RESET)) {
     this->error_code_ = WRITE_FAILED;
     this->mark_failed();
     return;
   }
-  delay(ENS160_BOOTING);
+  delay(ENS160_BOOTING);*/
 
-  // check status
+  /*/ check status
   uint8_t status_value;
   if (!this->read_byte(ENS160_REG_DATA_STATUS, &status_value)) {
     this->error_code_ = READ_FAILED;
@@ -85,15 +101,14 @@ void ENS160Component::setup() {
     this->error_code_ = VALIDITY_INVALID;
     this->mark_failed();
     return;
-  }
-
-  // set mode to idle
+  }*/
+  /*/ set mode to idle
   if (!this->write_byte(ENS160_REG_OPMODE, ENS160_OPMODE_IDLE)) {
     this->error_code_ = WRITE_FAILED;
     this->mark_failed();
     return;
-  }
-  // clear command
+  }*/
+  /*/ clear command
   if (!this->write_byte(ENS160_REG_COMMAND, ENS160_COMMAND_NOP)) {
     this->error_code_ = WRITE_FAILED;
     this->mark_failed();
@@ -103,9 +118,9 @@ void ENS160Component::setup() {
     this->error_code_ = WRITE_FAILED;
     this->mark_failed();
     return;
-  }
+  }*/
 
-  // read firmware version
+  /*/ read firmware version
   if (!this->write_byte(ENS160_REG_COMMAND, ENS160_COMMAND_GET_APPVER)) {
     this->error_code_ = WRITE_FAILED;
     this->mark_failed();
@@ -119,28 +134,150 @@ void ENS160Component::setup() {
   }
   this->firmware_ver_major_ = version_data[0];
   this->firmware_ver_minor_ = version_data[1];
-  this->firmware_ver_build_ = version_data[2];
+  this->firmware_ver_build_ = version_data[2];*/
 
   // set mode to standard
-  if (!this->write_byte(ENS160_REG_OPMODE, ENS160_OPMODE_STD)) {
+  if (!this->setMode(ENS160_OPMODE_STD))
+    return;
+  /* if (!this->write_byte(ENS160_REG_OPMODE, ENS160_OPMODE_STD)) {
+     this->error_code_ = WRITE_FAILED;
+     this->mark_failed();
+     return;
+   }
+
+   // read opmode and check standard mode is achieved before finishing Setup
+   uint8_t op_mode;
+   if (!this->read_byte(ENS160_REG_OPMODE, &op_mode)) {
+     this->error_code_ = READ_FAILED;
+     this->mark_failed();
+     return;
+   }
+
+   if (op_mode != ENS160_OPMODE_STD) {
+     this->error_code_ = STD_OPMODE_FAILED;
+     this->mark_failed();
+     return;
+   }*/
+}
+
+// Sends a reset to the ENS160. Returns false on I2C problems.
+bool ENS160Component::reset() {
+  // set mode to reset
+  if (!this->write_byte(ENS160_REG_OPMODE, ENS160_OPMODE_RESET)) {
     this->error_code_ = WRITE_FAILED;
     this->mark_failed();
-    return;
+    return false;
   }
 
-  // read opmode and check standard mode is achieved before finishing Setup
+  delay(ENS160_BOOTING);  // Wait to boot after reset
+  return true;
+}
+
+bool ENS160Component::setMode(uint8_t mode) {
+  if (!this->write_byte(ENS160_REG_OPMODE, mode)) {
+    this->error_code_ = WRITE_FAILED;
+    this->mark_failed();
+    return false;
+  }
+
+  delay(ENS160_BOOTING);
+
+  // read opmode and check it is set
   uint8_t op_mode;
   if (!this->read_byte(ENS160_REG_OPMODE, &op_mode)) {
     this->error_code_ = READ_FAILED;
     this->mark_failed();
-    return;
+    return false;
   }
 
-  if (op_mode != ENS160_OPMODE_STD) {
+  if (op_mode != mode) {
     this->error_code_ = STD_OPMODE_FAILED;
     this->mark_failed();
-    return;
+    return false;
   }
+  delay(ENS160_BOOTING);
+
+  return true;
+}
+
+// Reads the part ID and confirms valid sensor
+bool ENS160Component::checkPartID() {
+  // check part_id
+  uint16_t part_id;
+  if (!this->read_bytes(ENS160_REG_PART_ID, reinterpret_cast<uint8_t *>(&part_id), 2)) {
+    this->error_code_ = COMMUNICATION_FAILED;
+    this->mark_failed();
+    return false;
+  }
+  if (part_id != ENS160_PART_ID) {
+    this->error_code_ = INVALID_ID;
+    this->mark_failed();
+    return false;
+  }
+
+  delay(ENS160_BOOTING);
+
+  return true;
+}
+
+// Initialize idle mode and confirms
+bool ENS160Component::clearCommand(void) {
+  // clear command
+  if (!this->write_byte(ENS160_REG_COMMAND, ENS160_COMMAND_NOP)) {
+    this->error_code_ = WRITE_FAILED;
+    this->mark_failed();
+    return false;
+  }
+  if (!this->write_byte(ENS160_REG_COMMAND, ENS160_COMMAND_CLRGPR)) {
+    this->error_code_ = WRITE_FAILED;
+    this->mark_failed();
+    return false;
+  }
+
+  delay(ENS160_BOOTING);
+
+  return this->checkStatus();
+}
+
+// read firmware version
+bool ENS160Component::getFirmware(void) {
+  if (!this->write_byte(ENS160_REG_COMMAND, ENS160_COMMAND_GET_APPVER)) {
+    this->error_code_ = WRITE_FAILED;
+    this->mark_failed();
+    return false;
+  }
+  uint8_t version_data[3];
+  if (!this->read_bytes(ENS160_REG_GPR_READ_4, version_data, 3)) {
+    this->error_code_ = READ_FAILED;
+    this->mark_failed();
+    return false;
+  }
+  this->firmware_ver_major_ = version_data[0];
+  this->firmware_ver_minor_ = version_data[1];
+  this->firmware_ver_build_ = version_data[2];
+
+  delay(ENS160_BOOTING);
+
+  return this->checkStatus();
+}
+
+bool ENS160Component::checkStatus(void) {
+  // check status
+  uint8_t status_value;
+  if (!this->read_byte(ENS160_REG_DATA_STATUS, &status_value)) {
+    this->error_code_ = READ_FAILED;
+    this->mark_failed();
+    return false;
+  }
+  this->validity_flag_ = static_cast<ValidityFlag>((ENS160_DATA_STATUS_VALIDITY & status_value) >> 2);
+
+  if (this->validity_flag_ == INVALID_OUTPUT) {
+    this->error_code_ = VALIDITY_INVALID;
+    this->mark_failed();
+    return false;
+  }
+  delay(ENS160_BOOTING);
+  return true;
 }
 
 void ENS160Component::update() {
@@ -169,7 +306,7 @@ void ENS160Component::update() {
   switch (validity_flag_) {
     case NORMAL_OPERATION:
       if (data_ready != ENS160_DATA_STATUS_NEWDAT) {
-        ESP_LOGD(TAG, "ENS160 readings unavailable - Normal Operation but readings not ready");
+        ESP_LOGD(TAG, "ENS160 readings unavailable - Normal Operation but readings not ready.");
         return;
       }
       break;

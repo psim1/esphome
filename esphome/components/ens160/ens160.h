@@ -7,12 +7,13 @@
 namespace esphome {
 namespace ens160 {
 
+/// This class implements support for the ENS160 relative humidity and temperature i2c sensor.
 class ENS160Component : public PollingComponent, public i2c::I2CDevice, public sensor::Sensor {
  public:
   void set_co2(sensor::Sensor *co2) { co2_ = co2; }
   void set_tvoc(sensor::Sensor *tvoc) { tvoc_ = tvoc; }
   void set_aqi(sensor::Sensor *aqi) { aqi_ = aqi; }
-  
+
   void set_humidity(sensor::Sensor *humidity) { humidity_ = humidity; }
   void set_temperature(sensor::Sensor *temperature) { temperature_ = temperature; }
 
@@ -23,6 +24,12 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
 
  protected:
   void send_env_data_();
+  bool reset();
+  bool checkPartID();
+  bool clearCommand();
+  bool checkStatus();
+  bool setMode(uint8_t);
+  bool getFirmware();
 
   enum ErrorCode {
     NONE = 0,
@@ -51,7 +58,7 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
   sensor::Sensor *co2_{nullptr};
   sensor::Sensor *tvoc_{nullptr};
   sensor::Sensor *aqi_{nullptr};
-  
+
   sensor::Sensor *humidity_{nullptr};
   sensor::Sensor *temperature_{nullptr};
 };
