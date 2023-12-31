@@ -69,7 +69,7 @@ void ENS160Component::setup() {
     return;
 
   // set mode to standard
-  //if (!this->setMode(ENS160_OPMODE_STD))
+  // if (!this->setMode(ENS160_OPMODE_STD))
   //  return;
 }
 
@@ -154,6 +154,8 @@ bool ENS160Component::clearCommand(void) {
 
 // read firmware version
 bool ENS160Component::getFirmware(void) {
+  this->clearCommand();
+
   if (!this->write_byte(ENS160_REG_COMMAND, ENS160_COMMAND_GET_APPVER)) {
     this->error_code_ = WRITE_FAILED;
     this->mark_failed();
@@ -220,7 +222,11 @@ void ENS160Component::update() {
     case NORMAL_OPERATION:
       if (data_ready != ENS160_DATA_STATUS_NEWDAT) {
         ESP_LOGD(TAG, "ENS160 readings unavailable - Normal Operation but readings not ready.");
-        return;
+        this->retry_counter_++;
+        if (this->retry_counter_ < 10)
+          return;
+        else
+          this->retry_counter_ = 0;
       }
       break;
     case INITIAL_STARTUP:

@@ -48,6 +48,8 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
     INVALID_OUTPUT,
   } validity_flag_;
 
+  uint8_t retry_counter_{0};
+
   bool warming_up_{false};
   bool initial_startup_{false};
 
