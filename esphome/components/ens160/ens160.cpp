@@ -68,6 +68,10 @@ void ENS160Component::setup() {
   if (!this->getFirmware())
     return;
 
+  // GPR data bit still high after firmwar read.
+  if (!this->clearCommand())
+    return;
+
   // set mode to standard
   if (!this->setMode(ENS160_OPMODE_STD))
     return;
@@ -133,7 +137,7 @@ bool ENS160Component::checkPartID() {
   return true;
 }
 
-// Initialize idle mode and confirms
+// clear command
 bool ENS160Component::clearCommand(void) {
   // clear command
   if (!this->write_byte(ENS160_REG_COMMAND, ENS160_COMMAND_NOP)) {
