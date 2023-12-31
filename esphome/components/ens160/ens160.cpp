@@ -154,8 +154,6 @@ bool ENS160Component::clearCommand(void) {
 
 // read firmware version
 bool ENS160Component::getFirmware(void) {
-  this->clearCommand();
-
   if (!this->write_byte(ENS160_REG_COMMAND, ENS160_COMMAND_GET_APPVER)) {
     this->error_code_ = WRITE_FAILED;
     this->mark_failed();
