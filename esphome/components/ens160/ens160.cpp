@@ -78,10 +78,6 @@ void ENS160Component::setup() {
   if (!this->getFirmware())
     return;
 
-  // GPR data bit still high after firmware read.
-  if (!this->clearCommand())
-    return;
-
   if (!this->setConfig())
     return;
 
@@ -181,33 +177,15 @@ bool ENS160Component::getFirmware(void) {
   this->firmware_ver_minor_ = this->readValue(ENS160_REG_GPR_READ_5);
   this->firmware_ver_build_ = this->readValue(ENS160_REG_GPR_READ_6);
 
- /* ESP_LOGV(TAG, "Status: GPR data4    0x%x", this->readValue(ENS160_REG_GPR_READ_4));
-  ESP_LOGV(TAG, "Status: GPR data5    0x%x", this->readValue(ENS160_REG_GPR_READ_5));
-  ESP_LOGV(TAG, "Status: GPR data6    0x%x", this->readValue(ENS160_REG_GPR_READ_6));
-
-  uint8_t version_data[3];
-  if (!this->read_bytes(ENS160_REG_GPR_READ_4, version_data, 3)) {
-    this->error_code_ = READ_FAILED;
-    this->mark_failed();
-    return false;
-  }
-  this->firmware_ver_major_ = version_data[0];
-  this->firmware_ver_minor_ = version_data[1];
-  this->firmware_ver_build_ = version_data[2];*/
-
-  delay(ENS160_BOOTING);
   return true;
-  // return this->checkStatus();
 }
 
 bool ENS160Component::checkStatus(void) {
   // check status
-  uint8_t status_value;
-  if (!this->read_byte(ENS160_REG_DATA_STATUS, &status_value)) {
-    this->error_code_ = READ_FAILED;
-    this->mark_failed();
+  uint8_t status_value = this->readValue(ENS160_REG_DATA_STATUS);
+  if (this->status_has_error())
     return false;
-  }
+
   this->validity_flag_ = static_cast<ValidityFlag>((ENS160_DATA_STATUS_VALIDITY & status_value) >> 2);
 
   if (this->validity_flag_ == INVALID_OUTPUT) {
@@ -244,6 +222,16 @@ void ENS160Component::update() {
 
   switch (validity_flag_) {
     case NORMAL_OPERATION:
+      if (ENS160_DATA_STATUS_NEWGPR & status_value) {
+        ESP_LOGV(TAG, "Status: GPR data0    0x%x", this->readValue(ENS160_REG_GPR_READ_0));
+        ESP_LOGV(TAG, "Status: GPR data1    0x%x", this->readValue(ENS160_REG_GPR_READ_1));
+        ESP_LOGV(TAG, "Status: GPR data2    0x%x", this->readValue(ENS160_REG_GPR_READ_2));
+        ESP_LOGV(TAG, "Status: GPR data3    0x%x", this->readValue(ENS160_REG_GPR_READ_3));
+        ESP_LOGV(TAG, "Status: GPR data4    0x%x", this->readValue(ENS160_REG_GPR_READ_4));
+        ESP_LOGV(TAG, "Status: GPR data5    0x%x", this->readValue(ENS160_REG_GPR_READ_5));
+        ESP_LOGV(TAG, "Status: GPR data6    0x%x", this->readValue(ENS160_REG_GPR_READ_6));
+        ESP_LOGV(TAG, "Status: GPR data7    0x%x", this->readValue(ENS160_REG_GPR_READ_7));
+      }
       if (data_ready != ENS160_DATA_STATUS_NEWDAT) {
         ESP_LOGD(TAG, "ENS160 readings unavailable - Normal Operation but readings not ready.");
         this->retry_counter_++;
@@ -252,17 +240,6 @@ void ENS160Component::update() {
         else
           this->retry_counter_ = 0;
         ESP_LOGD(TAG, "ENS160 readings unavailable - Reading data anyway.");
-
-        if (ENS160_DATA_STATUS_NEWGPR & status_value) {
-          ESP_LOGV(TAG, "Status: GPR data0    0x%x", this->readValue(ENS160_REG_GPR_READ_0));
-          ESP_LOGV(TAG, "Status: GPR data1    0x%x", this->readValue(ENS160_REG_GPR_READ_1));
-          ESP_LOGV(TAG, "Status: GPR data2    0x%x", this->readValue(ENS160_REG_GPR_READ_2));
-          ESP_LOGV(TAG, "Status: GPR data3    0x%x", this->readValue(ENS160_REG_GPR_READ_3));
-          ESP_LOGV(TAG, "Status: GPR data4    0x%x", this->readValue(ENS160_REG_GPR_READ_4));
-          ESP_LOGV(TAG, "Status: GPR data5    0x%x", this->readValue(ENS160_REG_GPR_READ_5));
-          ESP_LOGV(TAG, "Status: GPR data6    0x%x", this->readValue(ENS160_REG_GPR_READ_6));
-          ESP_LOGV(TAG, "Status: GPR data7    0x%x", this->readValue(ENS160_REG_GPR_READ_7));
-        }
       }
       break;
     case INITIAL_STARTUP:
