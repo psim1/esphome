@@ -45,6 +45,9 @@ static const uint8_t ENS160_DATA_STATUS_VALIDITY = 0x0C;
 static const uint8_t ENS160_DATA_STATUS_NEWDAT = 0x02;
 static const uint8_t ENS160_DATA_STATUS_NEWGPR = 0x01;
 
+// enable interrupts on data available
+static const uint8_t ENS160_OPMODE_INT_DATA = 0x23;
+
 // helps remove reserved bits in aqi data register
 static const uint8_t ENS160_DATA_AQI = 0x07;
 
@@ -68,13 +71,29 @@ void ENS160Component::setup() {
   if (!this->getFirmware())
     return;
 
-  // GPR data bit still high after firmwar read.
+  // GPR data bit still high after firmware read.
   if (!this->clearCommand())
+    return;
+
+  if (!this->setConfig())
     return;
 
   // set mode to standard
   if (!this->setMode(ENS160_OPMODE_STD))
     return;
+}
+
+// Set config to use data registers, disable interrupts.
+bool ENS160Component::setConfig() {
+  // set mode to reset
+  if (!this->write_byte(ENS160_REG_CONFIG, ENS160_OPMODE_INT_DATA)) {
+    this->error_code_ = WRITE_FAILED;
+    this->mark_failed();
+    return false;
+  }
+
+  delay(ENS160_BOOTING);  // Wait to boot after reset
+  return true;
 }
 
 // Sends a reset to the ENS160. Returns false on I2C problems.

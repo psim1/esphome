@@ -30,6 +30,7 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
   bool checkStatus();
   bool setMode(uint8_t);
   bool getFirmware();
+  bool setConfig();
 
   enum ErrorCode {
     NONE = 0,
