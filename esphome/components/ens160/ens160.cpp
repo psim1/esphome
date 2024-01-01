@@ -124,28 +124,19 @@ bool ENS160Component::reset() { return this->setValue(ENS160_REG_OPMODE, ENS160_
 void ENS160Component::readConfig() { ESP_LOGV(TAG, "Config: Byte data    0x%x", this->readValue(ENS160_REG_CONFIG)); }
 
 bool ENS160Component::setMode(uint8_t mode) {
-  if (!this->write_byte(ENS160_REG_OPMODE, mode)) {
-    this->error_code_ = WRITE_FAILED;
-    this->mark_failed();
+  if (!this->setValue(ENS160_REG_OPMODE, mode))
     return false;
-  }
-
-  delay(ENS160_BOOTING);
 
   // read opmode and check it is set
-  uint8_t op_mode;
-  if (!this->read_byte(ENS160_REG_OPMODE, &op_mode)) {
-    this->error_code_ = READ_FAILED;
-    this->mark_failed();
+  uint8_t op_mode = this->readValue(ENS160_REG_OPMODE);
+  if (this->status_has_error())
     return false;
-  }
 
   if (op_mode != mode) {
     this->error_code_ = STD_OPMODE_FAILED;
     this->mark_failed();
     return false;
   }
-  delay(ENS160_BOOTING);
 
   return true;
 }
@@ -186,7 +177,11 @@ bool ENS160Component::getFirmware(void) {
   if (!this->setValue(ENS160_REG_COMMAND, ENS160_COMMAND_GET_APPVER))
     return false;
 
-  ESP_LOGV(TAG, "Status: GPR data4    0x%x", this->readValue(ENS160_REG_GPR_READ_4));
+  this->firmware_ver_major_ = this->readValue(ENS160_REG_GPR_READ_4);
+  this->firmware_ver_minor_ = this->readValue(ENS160_REG_GPR_READ_5);
+  this->firmware_ver_build_ = this->readValue(ENS160_REG_GPR_READ_6);
+
+ /* ESP_LOGV(TAG, "Status: GPR data4    0x%x", this->readValue(ENS160_REG_GPR_READ_4));
   ESP_LOGV(TAG, "Status: GPR data5    0x%x", this->readValue(ENS160_REG_GPR_READ_5));
   ESP_LOGV(TAG, "Status: GPR data6    0x%x", this->readValue(ENS160_REG_GPR_READ_6));
 
@@ -198,7 +193,7 @@ bool ENS160Component::getFirmware(void) {
   }
   this->firmware_ver_major_ = version_data[0];
   this->firmware_ver_minor_ = version_data[1];
-  this->firmware_ver_build_ = version_data[2];
+  this->firmware_ver_build_ = version_data[2];*/
 
   delay(ENS160_BOOTING);
   return true;
