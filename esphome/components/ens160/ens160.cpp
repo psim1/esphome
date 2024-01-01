@@ -183,11 +183,13 @@ bool ENS160Component::clearCommand(void) {
 
 // read firmware version
 bool ENS160Component::getFirmware(void) {
-  if (!this->write_byte(ENS160_REG_COMMAND, ENS160_COMMAND_GET_APPVER)) {
-    this->error_code_ = WRITE_FAILED;
-    this->mark_failed();
+  if (!this->setValue(ENS160_REG_COMMAND, ENS160_COMMAND_GET_APPVER))
     return false;
-  }
+
+  ESP_LOGV(TAG, "Status: GPR data4    0x%x", this->readValue(ENS160_REG_GPR_READ_4));
+  ESP_LOGV(TAG, "Status: GPR data5    0x%x", this->readValue(ENS160_REG_GPR_READ_5));
+  ESP_LOGV(TAG, "Status: GPR data6    0x%x", this->readValue(ENS160_REG_GPR_READ_6));
+
   uint8_t version_data[3];
   if (!this->read_bytes(ENS160_REG_GPR_READ_4, version_data, 3)) {
     this->error_code_ = READ_FAILED;
@@ -199,8 +201,8 @@ bool ENS160Component::getFirmware(void) {
   this->firmware_ver_build_ = version_data[2];
 
   delay(ENS160_BOOTING);
-
-  return this->checkStatus();
+  return true;
+  // return this->checkStatus();
 }
 
 bool ENS160Component::checkStatus(void) {
