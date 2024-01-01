@@ -46,7 +46,8 @@ static const uint8_t ENS160_DATA_STATUS_NEWDAT = 0x02;
 static const uint8_t ENS160_DATA_STATUS_NEWGPR = 0x01;
 
 // enable interrupts on data available
-static const uint8_t ENS160_OPMODE_INT_DATA = 0x23;
+static const uint8_t ENS160_CONFIG_INT_DATA = 0x23;
+static const uint8_t ENS160_CONFIG_INT_OFF = 0x20;
 
 // helps remove reserved bits in aqi data register
 static const uint8_t ENS160_DATA_AQI = 0x07;
@@ -86,7 +87,7 @@ void ENS160Component::setup() {
 // Set config to use data registers, disable interrupts.
 bool ENS160Component::setConfig() {
   // set mode to reset
-  if (!this->write_byte(ENS160_REG_CONFIG, ENS160_OPMODE_INT_DATA)) {
+  if (!this->write_byte(ENS160_REG_CONFIG, ENS160_CONFIG_INT_OFF)) {
     this->error_code_ = WRITE_FAILED;
     this->mark_failed();
     return false;
