@@ -84,10 +84,10 @@ void ENS160Component::setup() {
     return;
 }
 
-// Set config to use data registers, disable interrupts.
-bool ENS160Component::setConfig() {
+// Set any register value and handle errors
+bool ENS160Component::setValue(uint8_t reg, uint8_t mode) {
   // set mode to reset
-  if (!this->write_byte(ENS160_REG_CONFIG, ENS160_CONFIG_INT_OFF)) {
+  if (!this->write_byte(reg, mode)) {
     this->error_code_ = WRITE_FAILED;
     this->mark_failed();
     return false;
@@ -97,31 +97,29 @@ bool ENS160Component::setConfig() {
   return true;
 }
 
-// check config value
-bool ENS160Component::readConfig() {
+uint8_t ENS160Component::readValue(uint8_t reg) {
   uint8_t status_value;
-  if (!this->read_byte(ENS160_REG_CONFIG, &status_value)) {
+  if (!this->read_byte(reg, &status_value)) {
     this->error_code_ = READ_FAILED;
     this->mark_failed();
-    return false;
+    return 0;
   }
-  ESP_LOGV(TAG, "Config: Byte data    0x%x", status_value);
   delay(ENS160_BOOTING);
-  return true;
+  return status_value;
+}
+
+// Set config to use data registers, disable interrupts.
+bool ENS160Component::setConfig() {
+  return this->setValue(ENS160_REG_CONFIG, ENS160_CONFIG_INT_OFF));
 }
 
 // Sends a reset to the ENS160. Returns false on I2C problems.
 bool ENS160Component::reset() {
-  // set mode to reset
-  if (!this->write_byte(ENS160_REG_OPMODE, ENS160_OPMODE_RESET)) {
-    this->error_code_ = WRITE_FAILED;
-    this->mark_failed();
-    return false;
-  }
-
-  delay(ENS160_BOOTING);  // Wait to boot after reset
-  return true;
+  return this->setValue(ENS160_REG_OPMODE, ENS160_OPMODE_RESET));
 }
+
+// check config value
+void ENS160Component::readConfig() { ESP_LOGV(TAG, "Config: Byte data    0x%x", this->readValue(ENS160_REG_CONFIG)); }
 
 bool ENS160Component::setMode(uint8_t mode) {
   if (!this->write_byte(ENS160_REG_OPMODE, mode)) {
@@ -262,6 +260,9 @@ void ENS160Component::update() {
           return;
         else
           this->retry_counter_ = 0;
+
+        if (data_ready == ENS160_DATA_STATUS_NEWGPR)
+          ESP_LOGV(TAG, "Status: GPR data    0x%x", this->readValue(ENS160_REG_GPR_READ_0));
       }
       ESP_LOGD(TAG, "ENS160 readings unavailable - Reading data anyway.");
       break;
