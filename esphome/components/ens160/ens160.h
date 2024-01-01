@@ -24,16 +24,16 @@ class ENS160Component : public PollingComponent, public i2c::I2CDevice, public s
 
  protected:
   void send_env_data_();
-  bool reset();
-  bool checkPartID();
-  bool clearCommand();
-  bool checkStatus();
-  bool setMode(uint8_t);
-  bool getFirmware();
-  bool setConfig();
-  void readConfig();
-  bool setValue(uint8_t, uint8_t);
-  uint8_t readValue(uint8_t);
+  bool reset_();
+  bool check_part_id_();
+  bool clear_command_();
+  bool check_status_();
+  bool set_mode_(uint8_t /*mode*/);
+  bool get_firmware_();
+  bool set_config_();
+  void read_config_();
+  bool set_value_(uint8_t /*reg*/, uint8_t /*mode*/);
+  uint8_t read_value_(uint8_t /*reg*/);
 
   enum ErrorCode {
     NONE = 0,

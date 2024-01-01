@@ -7,77 +7,78 @@ namespace pmsx003 {
 static const char *const TAG = "pmsx003";
 
 void PMSX003Component::set_pm_1_0_std_sensor(sensor::Sensor *pm_1_0_std_sensor) {
-  pm_1_0_std_sensor_ = pm_1_0_std_sensor;
+  this->pm_1_0_std_sensor_ = pm_1_0_std_sensor;
 }
 void PMSX003Component::set_pm_2_5_std_sensor(sensor::Sensor *pm_2_5_std_sensor) {
-  pm_2_5_std_sensor_ = pm_2_5_std_sensor;
+  this->pm_2_5_std_sensor_ = pm_2_5_std_sensor;
 }
 void PMSX003Component::set_pm_10_0_std_sensor(sensor::Sensor *pm_10_0_std_sensor) {
-  pm_10_0_std_sensor_ = pm_10_0_std_sensor;
+  this->pm_10_0_std_sensor_ = pm_10_0_std_sensor;
 }
 
-void PMSX003Component::set_pm_1_0_sensor(sensor::Sensor *pm_1_0_sensor) { pm_1_0_sensor_ = pm_1_0_sensor; }
-void PMSX003Component::set_pm_2_5_sensor(sensor::Sensor *pm_2_5_sensor) { pm_2_5_sensor_ = pm_2_5_sensor; }
-void PMSX003Component::set_pm_10_0_sensor(sensor::Sensor *pm_10_0_sensor) { pm_10_0_sensor_ = pm_10_0_sensor; }
+void PMSX003Component::set_pm_1_0_sensor(sensor::Sensor *pm_1_0_sensor) { this->pm_1_0_sensor_ = pm_1_0_sensor; }
+void PMSX003Component::set_pm_2_5_sensor(sensor::Sensor *pm_2_5_sensor) { this->pm_2_5_sensor_ = pm_2_5_sensor; }
+void PMSX003Component::set_pm_10_0_sensor(sensor::Sensor *pm_10_0_sensor) { this->pm_10_0_sensor_ = pm_10_0_sensor; }
 
 void PMSX003Component::set_pm_particles_03um_sensor(sensor::Sensor *pm_particles_03um_sensor) {
-  pm_particles_03um_sensor_ = pm_particles_03um_sensor;
+  this->pm_particles_03um_sensor_ = pm_particles_03um_sensor;
 }
 void PMSX003Component::set_pm_particles_05um_sensor(sensor::Sensor *pm_particles_05um_sensor) {
-  pm_particles_05um_sensor_ = pm_particles_05um_sensor;
+  this->pm_particles_05um_sensor_ = pm_particles_05um_sensor;
 }
 void PMSX003Component::set_pm_particles_10um_sensor(sensor::Sensor *pm_particles_10um_sensor) {
-  pm_particles_10um_sensor_ = pm_particles_10um_sensor;
+  this->pm_particles_10um_sensor_ = pm_particles_10um_sensor;
 }
 void PMSX003Component::set_pm_particles_25um_sensor(sensor::Sensor *pm_particles_25um_sensor) {
-  pm_particles_25um_sensor_ = pm_particles_25um_sensor;
+  this->pm_particles_25um_sensor_ = pm_particles_25um_sensor;
 }
 void PMSX003Component::set_pm_particles_50um_sensor(sensor::Sensor *pm_particles_50um_sensor) {
-  pm_particles_50um_sensor_ = pm_particles_50um_sensor;
+  this->pm_particles_50um_sensor_ = pm_particles_50um_sensor;
 }
 void PMSX003Component::set_pm_particles_100um_sensor(sensor::Sensor *pm_particles_100um_sensor) {
-  pm_particles_100um_sensor_ = pm_particles_100um_sensor;
+  this->pm_particles_100um_sensor_ = pm_particles_100um_sensor;
 }
-
 void PMSX003Component::set_temperature_sensor(sensor::Sensor *temperature_sensor) {
-  temperature_sensor_ = temperature_sensor;
+  this->temperature_sensor_ = temperature_sensor;
 }
-void PMSX003Component::set_humidity_sensor(sensor::Sensor *humidity_sensor) { humidity_sensor_ = humidity_sensor; }
+void PMSX003Component::set_humidity_sensor(sensor::Sensor *humidity_sensor) {
+  this->humidity_sensor_ = humidity_sensor;
+}
 void PMSX003Component::set_formaldehyde_sensor(sensor::Sensor *formaldehyde_sensor) {
-  formaldehyde_sensor_ = formaldehyde_sensor;
+  this->formaldehyde_sensor_ = formaldehyde_sensor;
 }
 
 void PMSX003Component::set_type(PMSX003Type type) {
   type_ = type;
   switch (type_) {
     case PMSX003_TYPE_5003ST:
-      cap_pm_1_25_10 = 1;
-      cap_temperature = 1;
-      cap_formaldehyde = 1;
-      temperature_register = 30;
-      humidity_register = 32;
-      cap_particle_50_100 = 1;
+      this->cap_pm_1_25_10_ = 1;
+      this->cap_temperature_ = 1;
+      this->cap_formaldehyde_ = 1;
+      this->temperature_register_ = 30;
+      this->humidity_register_ = 32;
+      this->cap_particle_50_100_ = 1;
       break;
     case PMSX003_TYPE_X003:
-      cap_pm_1_25_10 = 1;
-      cap_particle_50_100 = 1;
+      this->cap_pm_1_25_10_ = 1;
+      this->cap_particle_50_100_ = 1;
       break;
     case PMSX003_TYPE_5003T:
-      cap_pm_2_5 = 1;
-      cap_temperature = 1;
-      temperature_register = 24;
-      humidity_register = 26;
+      this->cap_pm_2_5_ = 1;
+      this->cap_temperature_ = 1;
+      this->temperature_register_ = 24;
+      this->humidity_register_ = 26;
       break;
     case PMSX003_TYPE_5003S:
-      cap_pm_1_25_10 = 1;
-      cap_formaldehyde = 1;
-      cap_particle_50_100 = 1;
+      this->cap_pm_1_25_10_ = 1;
+      this->cap_formaldehyde_ = 1;
+      this->cap_particle_50_100_ = 1;
       break;
     case PMSX003_TYPE_7003T:
-      cap_pm_1_25_10 = 1;
-      cap_temperature = 1;
-      temperature_register = 24;
-      humidity_register = 26;
+      this->cap_pm_1_25_10_ = 1;
+      this->cap_temperature_ = 1;
+      this->temperature_register_ = 24;
+      this->humidity_register_ = 26;
       break;
   }
 }
@@ -171,27 +172,27 @@ optional<bool> PMSX003Component::check_byte_() {
     bool length_matches = false;
     switch (this->type_) {
       case PMSX003_TYPE_X003:
-        length_matches = payload_length == 28 || payload_length == 20;
+        length_matches = this->payload_length_ == 28 || this->payload_length_ == 20;
         break;
       case PMSX003_TYPE_5003T:
       case PMSX003_TYPE_5003S:
       case PMSX003_TYPE_7003T:
-        length_matches = payload_length == 28;
+        length_matches = this->payload_length_ == 28;
         break;
       case PMSX003_TYPE_5003ST:
-        length_matches = payload_length == 36;
+        length_matches = this->payload_length_ == 36;
         break;
     }
 
     if (!length_matches) {
-      ESP_LOGW(TAG, "PMSX003 length %u doesn't match. Are you using the correct PMSX003 type?", payload_length);
+      ESP_LOGW(TAG, "PMSX003 length %u doesn't match. Are you using the correct PMSX003 type?", this->payload_length_);
       return false;
     }
     return true;
   }
 
   // start (16bit) + length (16bit) + DATA (payload_length-2 bytes) + checksum (16bit)
-  uint8_t total_size = 4 + payload_length;
+  uint8_t total_size = 4 + this->payload_length_;
 
   if (index < total_size - 1)
     return true;
@@ -212,31 +213,31 @@ optional<bool> PMSX003Component::check_byte_() {
 
 void PMSX003Component::send_command_(uint8_t cmd, uint16_t data) {
   this->data_index_ = 0;
-  this->data_[data_index_++] = 0x42;
-  this->data_[data_index_++] = 0x4D;
-  this->data_[data_index_++] = cmd;
-  this->data_[data_index_++] = (data >> 8) & 0xFF;
-  this->data_[data_index_++] = (data >> 0) & 0xFF;
+  this->data_[this->data_index_++] = 0x42;
+  this->data_[this->data_index_++] = 0x4D;
+  this->data_[this->data_index_++] = cmd;
+  this->data_[this->data_index_++] = (data >> 8) & 0xFF;
+  this->data_[this->data_index_++] = (data >> 0) & 0xFF;
   int sum = 0;
-  for (int i = 0; i < data_index_; i++) {
+  for (int i = 0; i < this->data_index_; i++) {
     sum += this->data_[i];
   }
-  this->data_[data_index_++] = (sum >> 8) & 0xFF;
-  this->data_[data_index_++] = (sum >> 0) & 0xFF;
-  for (int i = 0; i < data_index_; i++) {
+  this->data_[this->data_index_++] = (sum >> 8) & 0xFF;
+  this->data_[this->data_index_++] = (sum >> 0) & 0xFF;
+  for (int i = 0; i < this->data_index_; i++) {
     this->write_byte(this->data_[i]);
   }
   this->data_index_ = 0;
 }
 
 void PMSX003Component::parse_data_() {
-  if (this->cap_pm_2_5) {
+  if (this->cap_pm_2_5_) {
     uint16_t pm_2_5_concentration = this->get_16_bit_uint_(12);
     ESP_LOGD(TAG, "Got PM2.5 Concentration: %u µg/m^3", pm_2_5_concentration);
     if (this->pm_2_5_sensor_ != nullptr)
       this->pm_2_5_sensor_->publish_state(pm_2_5_concentration);
 
-  } else if (this->cap_pm_1_25_10) {
+  } else if (this->cap_pm_1_25_10_) {
     uint16_t pm_1_0_std_concentration = this->get_16_bit_uint_(4);
     uint16_t pm_2_5_std_concentration = this->get_16_bit_uint_(6);
     uint16_t pm_10_0_std_concentration = this->get_16_bit_uint_(8);
@@ -290,7 +291,7 @@ void PMSX003Component::parse_data_() {
     }
   }
 
-  if (this->cap_formaldehyde) {
+  if (this->cap_formaldehyde_) {
     uint16_t formaldehyde = this->get_16_bit_uint_(28);
 
     ESP_LOGD(TAG, "Got Formaldehyde: %u µg/m^3", formaldehyde);
@@ -299,7 +300,7 @@ void PMSX003Component::parse_data_() {
       this->formaldehyde_sensor_->publish_state(formaldehyde);
   }
 
-  if (this->cap_temperature) {
+  if (this->cap_temperature_) {
     float temperature = this->get_16_bit_uint_(temperature_register) / 10.0f;
     float humidity = this->get_16_bit_uint_(humidity_register) / 10.0f;
 

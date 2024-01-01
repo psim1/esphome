@@ -75,15 +75,15 @@ class PMSX003Component : public uart::UARTDevice, public Component {
   PMSX003Type type_;
 
   // Capabilites of the sensors
-  uint8_t cap_pm_2_5{0};
-  uint8_t cap_pm_1_25_10{0};
-  uint8_t cap_particle_50_100{0};
-  uint8_t cap_temperature{0};
-  uint8_t cap_formaldehyde{0};
+  uint8_t cap_pm_2_5_{0};
+  uint8_t cap_pm_1_25_10_{0};
+  uint8_t cap_particle_50_100_{0};
+  uint8_t cap_temperature_{0};
+  uint8_t cap_formaldehyde_{0};
   // 20, 28 or 36
-  uint16_t payload_length{28};
-  uint8_t temperature_register{0};
-  uint8_t humidity_register{0};
+  uint16_t payload_length_{28};
+  uint8_t temperature_register_{0};
+  uint8_t humidity_register_{0};
 
   // "Standard Particle"
   sensor::Sensor *pm_1_0_std_sensor_{nullptr};

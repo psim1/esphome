@@ -63,31 +63,31 @@ void ENS160Component::setup() {
 
   delay(ENS160_BOOTING);
 
-  if (!this->reset())
+  if (!this->reset_())
     return;
 
-  if (!this->checkPartID())
+  if (!this->check_part_id_())
     return;
 
-  if (!this->setMode(ENS160_OPMODE_IDLE))
+  if (!this->set_mode_(ENS160_OPMODE_IDLE))
     return;
 
-  if (!this->clearCommand())
+  if (!this->clear_command_())
     return;
 
-  if (!this->getFirmware())
+  if (!this->get_firmware_())
     return;
 
-  if (!this->setConfig())
+  if (!this->set_config_())
     return;
 
   // set mode to standard
-  if (!this->setMode(ENS160_OPMODE_STD))
+  if (!this->set_mode_(ENS160_OPMODE_STD))
     return;
 }
 
 // Set any register value and handle errors
-bool ENS160Component::setValue(uint8_t reg, uint8_t mode) {
+bool ENS160Component::set_value_(uint8_t reg, uint8_t mode) {
   // set mode to reset
   if (!this->write_byte(reg, mode)) {
     this->error_code_ = WRITE_FAILED;
@@ -99,7 +99,7 @@ bool ENS160Component::setValue(uint8_t reg, uint8_t mode) {
   return true;
 }
 
-uint8_t ENS160Component::readValue(uint8_t reg) {
+uint8_t ENS160Component::read_value_(uint8_t reg) {
   uint8_t status_value;
   if (!this->read_byte(reg, &status_value)) {
     this->error_code_ = READ_FAILED;
@@ -111,20 +111,22 @@ uint8_t ENS160Component::readValue(uint8_t reg) {
 }
 
 // Set config to use data registers, disable interrupts.
-bool ENS160Component::setConfig() { return this->setValue(ENS160_REG_CONFIG, ENS160_CONFIG_INT_OFF); }
+bool ENS160Component::set_config_() { return this->set_value_(ENS160_REG_CONFIG, ENS160_CONFIG_INT_OFF); }
 
 // Sends a reset to the ENS160. Returns false on I2C problems.
-bool ENS160Component::reset() { return this->setValue(ENS160_REG_OPMODE, ENS160_OPMODE_RESET); }
+bool ENS160Component::reset_() { return this->set_value_(ENS160_REG_OPMODE, ENS160_OPMODE_RESET); }
 
 // check config value
-void ENS160Component::readConfig() { ESP_LOGV(TAG, "Config: Byte data    0x%x", this->readValue(ENS160_REG_CONFIG)); }
+void ENS160Component::read_config_() {
+  ESP_LOGV(TAG, "Config: Byte data    0x%x", this->read_value_(ENS160_REG_CONFIG));
+}
 
-bool ENS160Component::setMode(uint8_t mode) {
-  if (!this->setValue(ENS160_REG_OPMODE, mode))
+bool ENS160Component::set_mode_(uint8_t mode) {
+  if (!this->set_value_(ENS160_REG_OPMODE, mode))
     return false;
 
   // read opmode and check it is set
-  uint8_t op_mode = this->readValue(ENS160_REG_OPMODE);
+  uint8_t op_mode = this->read_value_(ENS160_REG_OPMODE);
   if (this->status_has_error())
     return false;
 
@@ -138,7 +140,7 @@ bool ENS160Component::setMode(uint8_t mode) {
 }
 
 // Reads the part ID and confirms valid sensor
-bool ENS160Component::checkPartID() {
+bool ENS160Component::check_part_id_() {
   // check part_id
   uint16_t part_id;
   if (!this->read_bytes(ENS160_REG_PART_ID, reinterpret_cast<uint8_t *>(&part_id), 2)) {
@@ -158,31 +160,31 @@ bool ENS160Component::checkPartID() {
 }
 
 // clear command
-bool ENS160Component::clearCommand(void) {
+bool ENS160Component::clear_command_() {
   // clear command
-  this->setValue(ENS160_REG_COMMAND, ENS160_COMMAND_NOP);
-  this->setValue(ENS160_REG_COMMAND, ENS160_COMMAND_CLRGPR);
+  this->set_value_(ENS160_REG_COMMAND, ENS160_COMMAND_NOP);
+  this->set_value_(ENS160_REG_COMMAND, ENS160_COMMAND_CLRGPR);
   if (this->status_has_error())
     return false;
 
-  return this->checkStatus();
+  return this->check_status_();
 }
 
 // read firmware version
-bool ENS160Component::getFirmware(void) {
-  if (!this->setValue(ENS160_REG_COMMAND, ENS160_COMMAND_GET_APPVER))
+bool ENS160Component::get_firmware_() {
+  if (!this->set_value_(ENS160_REG_COMMAND, ENS160_COMMAND_GET_APPVER))
     return false;
 
-  this->firmware_ver_major_ = this->readValue(ENS160_REG_GPR_READ_4);
-  this->firmware_ver_minor_ = this->readValue(ENS160_REG_GPR_READ_5);
-  this->firmware_ver_build_ = this->readValue(ENS160_REG_GPR_READ_6);
+  this->firmware_ver_major_ = this->read_value_(ENS160_REG_GPR_READ_4);
+  this->firmware_ver_minor_ = this->read_value_(ENS160_REG_GPR_READ_5);
+  this->firmware_ver_build_ = this->read_value_(ENS160_REG_GPR_READ_6);
 
   return true;
 }
 
-bool ENS160Component::checkStatus(void) {
+bool ENS160Component::check_status_() {
   // check status
-  uint8_t status_value = this->readValue(ENS160_REG_DATA_STATUS);
+  uint8_t status_value = this->read_value_(ENS160_REG_DATA_STATUS);
   if (this->status_has_error())
     return false;
 
@@ -223,22 +225,23 @@ void ENS160Component::update() {
   switch (validity_flag_) {
     case NORMAL_OPERATION:
       if (ENS160_DATA_STATUS_NEWGPR & status_value) {
-        ESP_LOGV(TAG, "Status: GPR data0    0x%x", this->readValue(ENS160_REG_GPR_READ_0));
-        ESP_LOGV(TAG, "Status: GPR data1    0x%x", this->readValue(ENS160_REG_GPR_READ_1));
-        ESP_LOGV(TAG, "Status: GPR data2    0x%x", this->readValue(ENS160_REG_GPR_READ_2));
-        ESP_LOGV(TAG, "Status: GPR data3    0x%x", this->readValue(ENS160_REG_GPR_READ_3));
-        ESP_LOGV(TAG, "Status: GPR data4    0x%x", this->readValue(ENS160_REG_GPR_READ_4));
-        ESP_LOGV(TAG, "Status: GPR data5    0x%x", this->readValue(ENS160_REG_GPR_READ_5));
-        ESP_LOGV(TAG, "Status: GPR data6    0x%x", this->readValue(ENS160_REG_GPR_READ_6));
-        ESP_LOGV(TAG, "Status: GPR data7    0x%x", this->readValue(ENS160_REG_GPR_READ_7));
+        ESP_LOGV(TAG, "Status: GPR data0    0x%x", this->read_value_(ENS160_REG_GPR_READ_0));
+        ESP_LOGV(TAG, "Status: GPR data1    0x%x", this->read_value_(ENS160_REG_GPR_READ_1));
+        ESP_LOGV(TAG, "Status: GPR data2    0x%x", this->read_value_(ENS160_REG_GPR_READ_2));
+        ESP_LOGV(TAG, "Status: GPR data3    0x%x", this->read_value_(ENS160_REG_GPR_READ_3));
+        ESP_LOGV(TAG, "Status: GPR data4    0x%x", this->read_value_(ENS160_REG_GPR_READ_4));
+        ESP_LOGV(TAG, "Status: GPR data5    0x%x", this->read_value_(ENS160_REG_GPR_READ_5));
+        ESP_LOGV(TAG, "Status: GPR data6    0x%x", this->read_value_(ENS160_REG_GPR_READ_6));
+        ESP_LOGV(TAG, "Status: GPR data7    0x%x", this->read_value_(ENS160_REG_GPR_READ_7));
       }
       if (data_ready != ENS160_DATA_STATUS_NEWDAT) {
         ESP_LOGD(TAG, "ENS160 readings unavailable - Normal Operation but readings not ready.");
         this->retry_counter_++;
-        if (this->retry_counter_ < 5)
+        if (this->retry_counter_ < 5) {
           return;
-        else
+        } else {
           this->retry_counter_ = 0;
+        }
         ESP_LOGD(TAG, "ENS160 readings unavailable - Reading data anyway.");
       }
       break;
@@ -369,7 +372,7 @@ void ENS160Component::dump_config() {
       ESP_LOGD(TAG, "Setup successful");
       break;
   }
-  this->readConfig();
+  this->read_config_();
   ESP_LOGI(TAG, "Firmware Version: %d.%d.%d", this->firmware_ver_major_, this->firmware_ver_minor_,
            this->firmware_ver_build_);
   LOG_I2C_DEVICE(this);
