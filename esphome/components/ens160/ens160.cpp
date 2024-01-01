@@ -391,9 +391,9 @@ void ENS160Component::dump_config() {
       ESP_LOGD(TAG, "Setup successful");
       break;
   }
+  this->readConfig();
   ESP_LOGI(TAG, "Firmware Version: %d.%d.%d", this->firmware_ver_major_, this->firmware_ver_minor_,
            this->firmware_ver_build_);
-
   LOG_I2C_DEVICE(this);
   LOG_UPDATE_INTERVAL(this);
   LOG_SENSOR("  ", "CO2 Sensor:", this->co2_);
