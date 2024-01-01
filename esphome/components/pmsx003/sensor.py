@@ -57,33 +57,19 @@ PMSX003_TYPES = {
 }
 
 SENSORS_TO_TYPE = {
-    CONF_PM_1_0: [
-        TYPE_PMSX003, TYPE_PMS5003ST, TYPE_PMS5003S, TYPE_PMS7003T
-    ],
-    CONF_PM_2_5: [
-        TYPE_PMSX003, TYPE_PMS5003T, TYPE_PMS5003ST, TYPE_PMS5003S, TYPE_PMS7003T
-    ],
-    CONF_PM_10_0: [
-        TYPE_PMSX003, TYPE_PMS5003ST, TYPE_PMS5003S, TYPE_PMS7003T
-    ],
-    CONF_TEMPERATURE: [
-        TYPE_PMS5003T, TYPE_PMS5003ST, TYPE_PMS7003T
-    ],
-    CONF_HUMIDITY: [
-        TYPE_PMS5003T, TYPE_PMS5003ST, TYPE_PMS7003T
-    ],
-    CONF_FORMALDEHYDE: [
-        TYPE_PMS5003ST, TYPE_PMS5003S
-    ]
+    CONF_PM_1_0: [TYPE_PMSX003, TYPE_PMS5003ST, TYPE_PMS5003S, TYPE_PMS7003T],
+    CONF_PM_2_5: [TYPE_PMSX003, TYPE_PMS5003T, TYPE_PMS5003ST, TYPE_PMS5003S, TYPE_PMS7003T],
+    CONF_PM_10_0: [TYPE_PMSX003, TYPE_PMS5003ST, TYPE_PMS5003S, TYPE_PMS7003T],
+    CONF_TEMPERATURE: [TYPE_PMS5003T, TYPE_PMS5003ST, TYPE_PMS7003T],
+    CONF_HUMIDITY: [TYPE_PMS5003T, TYPE_PMS5003ST, TYPE_PMS7003T],
+    CONF_FORMALDEHYDE: [TYPE_PMS5003ST, TYPE_PMS5003S],
 }
-
 
 def validate_pmsx003_sensors(value):
     for key, types in SENSORS_TO_TYPE.items():
         if key in value and value[CONF_TYPE] not in types:
             raise cv.Invalid(f"{value[CONF_TYPE]} does not have {key} sensor!")
     return value
-
 
 def validate_update_interval(value):
     value = cv.positive_time_period_milliseconds(value)
@@ -94,7 +80,6 @@ def validate_update_interval(value):
             "Update interval must be greater than or equal to 30 seconds if set."
         )
     return value
-
 
 CONFIG_SCHEMA = (
     cv.Schema(

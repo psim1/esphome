@@ -257,7 +257,7 @@ void ENS160Component::update() {
         else
           this->retry_counter_ = 0;
 
-        if (data_ready == ENS160_DATA_STATUS_NEWGPR)
+        if (ENS160_DATA_STATUS_NEWGPR & status_value)
           ESP_LOGV(TAG, "Status: GPR data    0x%x", this->readValue(ENS160_REG_GPR_READ_0));
       }
       ESP_LOGD(TAG, "ENS160 readings unavailable - Reading data anyway.");
