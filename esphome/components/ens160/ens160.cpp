@@ -29,7 +29,13 @@ static const uint8_t ENS160_REG_DATA_TVOC = 0x22;
 static const uint8_t ENS160_REG_DATA_ECO2 = 0x24;
 
 static const uint8_t ENS160_REG_GPR_READ_0 = 0x48;
+static const uint8_t ENS160_REG_GPR_READ_1 = ENS160_REG_GPR_READ_0 + 1;
+static const uint8_t ENS160_REG_GPR_READ_2 = ENS160_REG_GPR_READ_0 + 2;
+static const uint8_t ENS160_REG_GPR_READ_3 = ENS160_REG_GPR_READ_0 + 3;
 static const uint8_t ENS160_REG_GPR_READ_4 = ENS160_REG_GPR_READ_0 + 4;
+static const uint8_t ENS160_REG_GPR_READ_5 = ENS160_REG_GPR_READ_0 + 5;
+static const uint8_t ENS160_REG_GPR_READ_6 = ENS160_REG_GPR_READ_0 + 6;
+static const uint8_t ENS160_REG_GPR_READ_7 = ENS160_REG_GPR_READ_0 + 7;
 
 static const uint8_t ENS160_COMMAND_NOP = 0x00;
 static const uint8_t ENS160_COMMAND_CLRGPR = 0xCC;
@@ -167,18 +173,10 @@ bool ENS160Component::checkPartID() {
 // clear command
 bool ENS160Component::clearCommand(void) {
   // clear command
-  if (!this->write_byte(ENS160_REG_COMMAND, ENS160_COMMAND_NOP)) {
-    this->error_code_ = WRITE_FAILED;
-    this->mark_failed();
+  this->setValue(ENS160_REG_COMMAND, ENS160_COMMAND_NOP);
+  this->setValue(ENS160_REG_COMMAND, ENS160_COMMAND_CLRGPR);
+  if (this->status_has_error())
     return false;
-  }
-  if (!this->write_byte(ENS160_REG_COMMAND, ENS160_COMMAND_CLRGPR)) {
-    this->error_code_ = WRITE_FAILED;
-    this->mark_failed();
-    return false;
-  }
-
-  delay(ENS160_BOOTING);
 
   return this->checkStatus();
 }
@@ -256,11 +254,19 @@ void ENS160Component::update() {
           return;
         else
           this->retry_counter_ = 0;
+        ESP_LOGD(TAG, "ENS160 readings unavailable - Reading data anyway.");
 
-        if (ENS160_DATA_STATUS_NEWGPR & status_value)
-          ESP_LOGV(TAG, "Status: GPR data    0x%x", this->readValue(ENS160_REG_GPR_READ_0));
+        if (ENS160_DATA_STATUS_NEWGPR & status_value) {
+          ESP_LOGV(TAG, "Status: GPR data0    0x%x", this->readValue(ENS160_REG_GPR_READ_0));
+          ESP_LOGV(TAG, "Status: GPR data1    0x%x", this->readValue(ENS160_REG_GPR_READ_1));
+          ESP_LOGV(TAG, "Status: GPR data2    0x%x", this->readValue(ENS160_REG_GPR_READ_2));
+          ESP_LOGV(TAG, "Status: GPR data3    0x%x", this->readValue(ENS160_REG_GPR_READ_3));
+          ESP_LOGV(TAG, "Status: GPR data4    0x%x", this->readValue(ENS160_REG_GPR_READ_4));
+          ESP_LOGV(TAG, "Status: GPR data5    0x%x", this->readValue(ENS160_REG_GPR_READ_5));
+          ESP_LOGV(TAG, "Status: GPR data6    0x%x", this->readValue(ENS160_REG_GPR_READ_6));
+          ESP_LOGV(TAG, "Status: GPR data7    0x%x", this->readValue(ENS160_REG_GPR_READ_7));
+        }
       }
-      ESP_LOGD(TAG, "ENS160 readings unavailable - Reading data anyway.");
       break;
     case INITIAL_STARTUP:
       if (!this->initial_startup_) {
