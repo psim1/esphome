@@ -92,7 +92,20 @@ bool ENS160Component::setConfig() {
     return false;
   }
 
-  delay(ENS160_BOOTING);  // Wait to boot after reset
+  delay(ENS160_BOOTING);
+  return true;
+}
+
+// check config value
+bool ENS160Component::readConfig() {
+  uint8_t status_value;
+  if (!this->read_byte(ENS160_REG_CONFIG, &status_value)) {
+    this->error_code_ = READ_FAILED;
+    this->mark_failed();
+    return false;
+  }
+  ESP_LOGV(TAG, "Config: Byte data    0x%x", status_value);
+  delay(ENS160_BOOTING);
   return true;
 }
 
