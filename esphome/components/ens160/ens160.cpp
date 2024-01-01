@@ -109,14 +109,10 @@ uint8_t ENS160Component::readValue(uint8_t reg) {
 }
 
 // Set config to use data registers, disable interrupts.
-bool ENS160Component::setConfig() {
-  return this->setValue(ENS160_REG_CONFIG, ENS160_CONFIG_INT_OFF));
-}
+bool ENS160Component::setConfig() { return this->setValue(ENS160_REG_CONFIG, ENS160_CONFIG_INT_OFF); }
 
 // Sends a reset to the ENS160. Returns false on I2C problems.
-bool ENS160Component::reset() {
-  return this->setValue(ENS160_REG_OPMODE, ENS160_OPMODE_RESET));
-}
+bool ENS160Component::reset() { return this->setValue(ENS160_REG_OPMODE, ENS160_OPMODE_RESET); }
 
 // check config value
 void ENS160Component::readConfig() { ESP_LOGV(TAG, "Config: Byte data    0x%x", this->readValue(ENS160_REG_CONFIG)); }
