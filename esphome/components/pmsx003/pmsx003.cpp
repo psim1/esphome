@@ -167,7 +167,7 @@ optional<bool> PMSX003Component::check_byte_() {
   if (index == 2)
     return true;
 
-  payload_length = this->get_16_bit_uint_(2);
+  this->payload_length_ = this->get_16_bit_uint_(2);
   if (index == 3) {
     bool length_matches = false;
     switch (this->type_) {
@@ -253,7 +253,7 @@ void PMSX003Component::parse_data_() {
     // registers used by temperature/humidity for some models
     uint16_t pm_particles_50um = 0;
     uint16_t pm_particles_100um = 0;
-    if (cap_particle_50_100) {
+    if (this->cap_particle_50_100_) {
       pm_particles_50um = this->get_16_bit_uint_(24);
       pm_particles_100um = this->get_16_bit_uint_(26);
     }
@@ -283,7 +283,7 @@ void PMSX003Component::parse_data_() {
       this->pm_particles_10um_sensor_->publish_state(pm_particles_10um);
     if (this->pm_particles_25um_sensor_ != nullptr)
       this->pm_particles_25um_sensor_->publish_state(pm_particles_25um);
-    if (cap_particle_50_100) {
+    if (this->cap_particle_50_100_) {
       if (this->pm_particles_50um_sensor_ != nullptr)
         this->pm_particles_50um_sensor_->publish_state(pm_particles_50um);
       if (this->pm_particles_100um_sensor_ != nullptr)
@@ -301,8 +301,8 @@ void PMSX003Component::parse_data_() {
   }
 
   if (this->cap_temperature_) {
-    float temperature = this->get_16_bit_uint_(temperature_register) / 10.0f;
-    float humidity = this->get_16_bit_uint_(humidity_register) / 10.0f;
+    float temperature = this->get_16_bit_uint_(this->temperature_register_) / 10.0f;
+    float humidity = this->get_16_bit_uint_(this->humidity_register_) / 10.0f;
 
     ESP_LOGD(TAG, "Got Temperature: %.1f°C, Humidity: %.1f%%", temperature, humidity);
 
