@@ -1,0 +1,1153 @@
+// ENS160 sensor with I2C interface from ScioSense
+//
+// Datasheet: https://www.sciosense.com/wp-content/uploads/documents/SC-001224-DS-7-ENS160-Datasheet.pdf
+//
+// Implementation based on:
+//   http://fabo.io/206.html
+
+#include "si11xx.h"
+#include "esphome/core/log.h"
+#include "esphome/core/hal.h"
+
+namespace esphome {
+namespace si11x {
+
+static const char *const TAG = "si11x";
+
+static const uint8_t SI11X_DELAY = 30;
+
+static const uint8_t SI_REG_PARTID = 0x00;  // Device type register
+static const uint8_t SI1132_DEVICE = 0x32;  // Device types supported
+static const uint8_t SI1145_DEVICE = 0x45;
+
+// Registers
+static const uint8_t SI_REG_HW_KEY = 0x07;
+static const uint8_t SI_REG_MEASRATE0 = 0x08;
+static const uint8_t SI_REG_INTCFG = 0x03;
+static const uint8_t SI_REG_IRQEN = 0x04;
+static const uint8_t SI_REG_PSLED21 = 0x0F;
+
+// Coefficient registers
+static const uint8_t SI_READ_UCOEFFS = 0x12;
+static const uint8_t SI_REG_UCOEFF0 = 0x13;
+static const uint8_t SI_REG_UCOEFF1 = 0x14;
+static const uint8_t SI_REG_UCOEFF2 = 0x15;
+static const uint8_t SI_REG_UCOEFF3 = 0x16;
+
+// Commands
+static const uint8_t SI_REG_PARAMWR = 0x17;
+static const uint8_t SI_REG_COMMAND = 0x18;
+
+static const uint8_t SI_REG_RESPONSE = 0x20;
+static const uint8_t SI1145_REG_IRQSTAT = 0x21;
+static const uint8_t SI1145_REG_IRQSTAT_ALS = 0x01;
+static const uint8_t REG_PS1_DATA0 = 0x26;
+static const uint8_t REG_CHIP_STAT = 0x30;
+
+static const uint8_t SI_PARAM_QUERY = 0x80;
+static const uint8_t SI_PARAM_SET = 0xA0;
+static const uint8_t SI_NOP = 0x00;
+static const uint8_t SI_RESET = 0x01;
+static const uint8_t BUSADDR = 0x02;
+static const uint8_t SI_PS_FORCE = 0x05;
+static const uint8_t SI_ALS_FORCE = 0x06;
+static const uint8_t SI_PSALS_FORCE = 0x07;
+static const uint8_t SI_PS_PAUSE = 0x09;
+static const uint8_t SI_ALS_PAUSE = 0x0A;
+static const uint8_t SI_PSALS_PAUSE = 0x0B;
+static const uint8_t PS_AUTO = 0x0D;
+static const uint8_t ALS_AUTO = 0x0E;
+static const uint8_t PSALS_AUTO = 0x0F;
+static const uint8_t SI_GET_CAL = 0x12;
+static const uint8_t SI_HW_KEY_DEFAULT = 0x17;
+
+// Chip list Parameter RAM Offset
+static const uint8_t SI_CHIPLIST_PARAM_OFFSET = 0x01;
+// Specific sensor parameter registers
+static const uint8_t SI_PSLED12SEL_PARAM_OFFSET = 0x02;
+static const uint8_t SI_ALS_ENCODING_PARAM_OFFSET = 0x06;
+static const uint8_t SI_PS1_ADCMUX_PARAM_OFFSET = 0x07;
+static const uint8_t SI_PS_ADC_COUNTER_PARAM_OFFSET = 0x0A;
+static const uint8_t SI_PS_ADC_GAIN_PARAM_OFFSET = 0x0B;
+static const uint8_t SI_PS_ADC_MISC_PARAM_OFFSET = 0x0C;
+static const uint8_t SI_ALS_IR_ADC_MUX_PARAM_OFFSET = 0x0E;
+static const uint8_t SI_AUX_ADC_MUX_PARAM_OFFSET = 0x0F;
+static const uint8_t SI_ALS_VIS_ADC_COUNTER_PARAM_OFFSET = 0x10;
+static const uint8_t SI_ALS_VIS_ADC_GAIN_PARAM_OFFSET = 0x11;
+static const uint8_t SI_ALS_VIS_ADC_MISC_PARAM_OFFSET = 0x12;
+static const uint8_t SI_ALS_IR_ADC_COUNTER_PARAM_OFFSET = 0x1D;
+static const uint8_t SI_ALS_IR_ADC_GAIN_PARAM_OFFSET = 0x1E;
+static const uint8_t SI_ALS_IR_ADC_MISC_PARAM_OFFSET = 0x1F;
+
+// Chip select registers
+static const uint8_t SI_CHIPLIST_EN_UV = 0x80;
+static const uint8_t SI_CHIPLIST_EN_AUX = 0x40;
+static const uint8_t SI_CHIPLIST_EN_ALS_IR = 0x20;
+static const uint8_t SI_CHIPLIST_EN_ALS_VIS = 0x10;
+static const uint8_t SI_CHIPLIST_EN_PS1 = 0x01;
+static const uint8_t SI_CHIPLIST_EN_PS2 = 0x02;
+static const uint8_t SI_CHIPLIST_EN_PS3 = 0x04;
+
+uint8_t SI11xComponent::read_value_(uint8_t reg) {
+  uint8_t status_value;
+  if (!this->read_byte(reg, &status_value)) {
+    this->error_code_ = READ_FAILED;
+    this->mark_failed();
+    return 0;
+  }
+  delay(SI11X_DELAY);
+  return status_value;
+}
+
+// Set any register value and handle errors
+bool SI11xComponent::set_value_(uint8_t reg, uint8_t mode) {
+  // set mode to reset
+  if (!this->write_byte(reg, mode)) {
+    this->error_code_ = WRITE_FAILED;
+    this->mark_failed();
+    return false;
+  }
+
+  delay(SI11X_DELAY);
+  return true;
+}
+
+void SI11xComponent::write_param_(uint8_t register_addr, uint8_t value) {
+  this->set_value_(SI_REG_PARAMWR, value);
+  this->set_value_(SI_REG_COMMAND, register_addr | SI_PARAM_SET);
+}
+
+/**
+ @brief software reset Si11xx
+*/
+void SI11xComponent::reset_() {
+  delay(SI11X_DELAY);  // minimum startup time
+  this->set_value_(SI_REG_COMMAND, SI_RESET);
+  this->set_value_(SI_REG_HW_KEY, SI_HW_KEY_DEFAULT);
+}
+
+void SI11xComponent::setup() {
+  ESP_LOGCONFIG(TAG, "Setting up SI11xx...");
+  this->get_device_();
+  this->reset_();
+  if (this->_device_type_ == SI1132_DEVICE)
+    this->configuration_1132_();
+  else if (this->_device_type_ == SI1145_DEVICE)
+    this->configuration_1145_();
+
+  this->error_code_ = INVALID_ID;
+  this->mark_failed();
+}
+
+void SI11xComponent::update() {
+// loop return sensor values
+}
+
+void SI11xComponent::dump_config() {
+  ESP_LOGCONFIG(TAG, "si11x:");
+
+  switch (this->error_code_) {
+    case COMMUNICATION_FAILED:
+      ESP_LOGE(TAG, "Communication failed! Is the sensor connected?");
+      break;
+    case READ_FAILED:
+      ESP_LOGE(TAG, "Error reading from register");
+      break;
+    case WRITE_FAILED:
+      ESP_LOGE(TAG, "Error writing to register");
+      break;
+    case INVALID_ID:
+      ESP_LOGE(TAG, "Sensor reported an invalid ID. Is this a si11x?");
+      break;
+    case VALIDITY_INVALID:
+      ESP_LOGE(TAG, "Invalid Device Status - No valid output");
+      break;
+    case STD_OPMODE_FAILED:
+      ESP_LOGE(TAG, "Device failed to achieve Standard Operating Mode");
+      break;
+    case NONE:
+      ESP_LOGD(TAG, "Setup successful");
+      break;
+  }
+  //this->read_config_();
+  //ESP_LOGI(TAG, "Firmware Version: %d.%d.%d", this->firmware_ver_major_, this->firmware_ver_minor_,
+  //         this->firmware_ver_build_);
+  LOG_I2C_DEVICE(this);
+  LOG_UPDATE_INTERVAL(this);
+  //LOG_SENSOR("  ", "CO2 Sensor:", this->co2_);
+  //LOG_SENSOR("  ", "TVOC Sensor:", this->tvoc_);
+  //LOG_SENSOR("  ", "AQI Sensor:", this->aqi_);
+
+  //if (this->temperature_ != nullptr && this->humidity_ != nullptr) {
+  //  LOG_SENSOR("  ", "  Temperature Compensation:", this->temperature_);
+  //  LOG_SENSOR("  ", "  Humidity Compensation:", this->humidity_);
+  //} else {
+  //  ESP_LOGCONFIG(TAG, "  Compensation: Not configured");
+  //}
+}
+
+bool SI11xComponent::get_device_() {
+  uint8_t device = 0x00;
+  readI2c(SI_REG_PARTID, 1, &device);
+  this->_device_type_ = device;
+}
+
+bool SI11xComponent::configuration_1132_() {
+  // Reset
+  // writeI2c(0x22, 0x01);
+  // delay(100);
+
+  // enable UVindex measurement coefficients!
+  this->set_calibrated_coefficients_();
+  // writeI2c(SI_REG_UCOEFF0, 0x7B);
+  // writeI2c(SI_REG_UCOEFF1, 0x6B);
+  // writeI2c(SI_REG_UCOEFF2, 0x01);
+  // writeI2c(SI_REG_UCOEFF3, 0x00);
+
+  // SET PARAM_WR(Chiplist)
+  this->write_param_(SI_CHIPLIST_PARAM_OFFSET,
+                     SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS);
+
+  // SET PARAM_WR(ALS_ENCODING)
+  this->write_param_(SI_ALS_ENCODING_PARAM_OFFSET, SI_ALS_VIS_ALIGN | SI_ALS_IR_ALIGN);
+
+  /* Visible */
+  this->set_ambient_light_params_();
+
+  /* IR */
+  setInfraRedParams();
+
+  // SET AUX_ADCMUX
+  this->write_param_(SI_AUX_ADC_MUX_PARAM_OFFSET, SI_AUX_ADCMUX_TEMPERATURE);
+
+  // Rate setting
+  this->set_value_(SI_REG_MEASRATE0, 0xFF);  // 255 * 31.25uS = 8ms
+
+  // Set auto run
+  this->set_value_(SI_REG_COMMAND, ALS_AUTO);
+  delay(10);
+
+  // device capable and external IR attached
+  this->proximity_supported_ = false;
+
+  return true;
+}
+
+/**
+ @brief Set Config
+*/
+bool SI11xComponent::configuration_1145_() {
+  // Reset
+  // writeI2c(0x22, 0x01);
+  // delay(100);
+
+  // enable UVindex measurement coefficients!
+  this->set_calibrated_coefficients_();
+  // writeI2c(SI_REG_UCOEFF0, 0x29);
+  // writeI2c(SI_REG_UCOEFF1, 0x89);
+  // writeI2c(SI_REG_UCOEFF2, 0x02);
+  // writeI2c(SI_REG_UCOEFF3, 0x00);
+
+  // SET enabled sensors
+  if (this->ProximityLedAttached)
+    this->write_param_(SI_CHIPLIST_PARAM_OFFSET,
+                       SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_PS1 | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS);
+  else
+    this->write_param_(SI_CHIPLIST_PARAM_OFFSET, SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS);
+
+  setProximityParams();
+  setInfraRedParams();
+  this->set_ambient_light_params_();
+
+  // Rate setting
+  this->set_value_(SI_REG_MEASRATE0, 0xFF);  // 255 * 31.25uS = 8ms
+
+  // Set auto run
+  if (this->ProximityLedAttached)
+    this->set_value_(SI_REG_COMMAND, PSALS_AUTO);
+  else
+    this->set_value_(SI_REG_COMMAND, ALS_AUTO);
+  delay(10);
+
+  // device capable if external IR attached
+  this->proximity_supported_ = true;
+
+  return true;
+}
+
+void SI11xComponent::set_calibrated_coefficients_() {
+  SI114X_CAL_S si114x_cal;
+
+  // si114x_get_calibration();
+  /* UV Coefficients */
+  si114x_get_calibration(&si114x_cal, 1);
+  si114x_set_ucoef(NULL, &si114x_cal);
+
+  // enable UVindex measurement coefficients!
+  // writeI2c(SI_REG_UCOEFF0, readI2c_8(0x22));
+  // writeI2c(SI_REG_UCOEFF1, readI2c_8(0x26));
+  // writeI2c(SI_REG_UCOEFF2, readI2c_8(0x2A));
+  // writeI2c(SI_REG_UCOEFF3, readI2c_8(0x2D));
+
+  // 0x22 to 0x2D.
+}
+
+void SI11xComponent::setProximityParams() {
+  if (!this->ProximityLedAttached)
+    return;
+
+  // enable interrupt on every sample
+  this->set_value_(SI_REG_INTCFG, SI_INTCFG_INTOE);
+  this->set_value_(SI_REG_IRQEN, SI_IRQEN_ALSEVERYSAMPLE);
+
+  // program LED current
+  this->set_value_(SI_REG_PSLED21, 0x03);  // 20mA for LED 1 only
+  this->write_param_(SI_PS1_ADCMUX_PARAM_OFFSET, SI_ADCMUX_LARGE_IR_PHOTDIODE);
+  // prox sensor #1 uses LED #1
+  this->write_param_(SI_PSLED12SEL_PARAM_OFFSET, SI_PSLED12SEL_PS1LED1);
+  // fastest clocks, clock div 1
+  this->write_param_(SI_PS_ADC_GAIN_PARAM_OFFSET, SI_01_DIVIDED_ADC_CLOCK);
+  // take 511 clocks to measure
+  this->write_param_(SI_PS_ADC_COUNTER_PARAM_OFFSET, SI_511_ADC_CLOCK);
+  // in prox mode, high range
+  if (this->OutsideMode)
+    this->write_param_(SI_PS_ADC_MISC_PARAM_OFFSET, SI_HIGH_SIGNAL_RANGE | SI_PSADCMISC_PSMODE);
+  else
+    this->write_param_(SI_PS_ADC_MISC_PARAM_OFFSET, SI_NORMAL_SIGNAL_RANGE | SI_PSADCMISC_PSMODE);
+}
+
+void SI11xComponent::set_ambient_light_params_() {
+  // fastest clocks, clock div 1
+  this->write_param_(SI_ALS_VIS_ADC_GAIN_PARAM_OFFSET, SI_01_DIVIDED_ADC_CLOCK);
+  // take 511 clocks to measure
+  this->write_param_(SI_ALS_VIS_ADC_COUNTER_PARAM_OFFSET, SI_511_ADC_CLOCK);
+  // high range mode for direct sunlight
+  if (this->OutsideMode)
+    this->write_param_(SI_ALS_VIS_ADC_MISC_PARAM_OFFSET, SI_HIGH_SIGNAL_RANGE);
+  else
+    this->write_param_(SI_ALS_VIS_ADC_MISC_PARAM_OFFSET, SI_NORMAL_SIGNAL_RANGE);
+}
+
+void SI11xComponent::setInfraRedParams() {
+  this->write_param_(SI_ALS_IR_ADC_MUX_PARAM_OFFSET, SI_ALS_IR_ADCMUX_SMALLIR);
+
+  // fastest clocks, clock div 1
+  this->write_param_(SI_ALS_IR_ADC_GAIN_PARAM_OFFSET, SI_01_DIVIDED_ADC_CLOCK);
+  // take 511 clocks to measure
+  this->write_param_(SI_ALS_IR_ADC_COUNTER_PARAM_OFFSET, SI_511_ADC_CLOCK);
+  // high range mode for direct sunlight
+  if (this->OutsideMode)
+    this->write_param_(SI_ALS_IR_ADC_MISC_PARAM_OFFSET, SI_HIGH_SIGNAL_RANGE);
+  else
+    this->write_param_(SI_ALS_IR_ADC_MISC_PARAM_OFFSET, SI_NORMAL_SIGNAL_RANGE);
+}
+
+/**
+ @brief The proximity measurement
+ @param [out] prox The proximity measurement
+*/
+uint16_t SI11xComponent::readProximity() {
+  if (!this->proximity_supported_ && this->ProximityLedAttached)
+    return 0;
+  uint16_t prox;
+  prox = readI2c_16(SI_REG_PROX_DATA);
+  return prox;
+}
+
+/**
+ @brief Read UV
+ @param [out] uv rawdata
+*/
+uint16_t SI11xComponent::readUV() {
+  uint16_t uv_index;
+  uv_index = readI2c_16(SI_REG_UV_DATA);
+  return uv_index;
+}
+
+/**
+ @brief Read UV
+ @param [out] uv rawdata/100 -> UV INDEX
+*/
+float SI11xComponent::readUVIndex() {
+  float uv = readUV() / 100.0;
+  return uv;
+}
+
+char *SI11xComponent::readUVScore(float uv_index) {
+  if (uv_index <= 2.0)
+    return "low";
+  if (uv_index <= 5.0)
+    return "moderate";
+  if (uv_index <= 7.0)
+    return "high";
+  if (uv_index <= 10.0)
+    return "very high";
+  return "extreme";
+}
+
+/**
+ @brief Read IR
+ @param [out] ir data (lux)
+*/
+uint16_t SI11xComponent::readIR() {
+  uint16_t ir;
+  ir = readI2c_16(SI_REG_IR_DATA);
+  ir = ((ir - 250) / 2.44) * 14.5;
+  return ir;
+}
+
+/**
+ @brief Read Visible
+ @param [out] Visible data (lux)
+*/
+uint16_t SI11xComponent::readVisible() {
+  uint16_t visible;
+  visible = readI2c_16(SI_REG_VISIBLE_DATA);
+  visible = ((visible - 256) / 0.282) * 14.5;
+  return visible;
+}
+
+/**
+ @brief Write I2C Data
+ @param [in] register_addr Write Register Address
+ @param [in] value Write Data
+*/
+uint16_t SI11xComponent::writeI2c(uint8_t register_addr, uint8_t value) {
+  Wire.beginTransmission(_i2caddr);
+  Wire.write(register_addr);
+  Wire.write(value);
+  Wire.endTransmission();
+
+  // add sanity check of operation
+  return (uint16_t) 0;
+}
+
+/**
+ @brief Read I2C Data
+ @param [in] register_addr register address
+ @param [in] num Data Length
+ @param [out] *buf Read Data
+*/
+uint16_t SI11xComponent::readI2c(uint8_t register_addr, uint8_t num, uint8_t *buf) {
+  Wire.beginTransmission(_i2caddr);
+  Wire.write(register_addr);
+  Wire.endTransmission();
+  Wire.requestFrom(_i2caddr, num);
+
+  int i = 0;
+  while (Wire.available()) {
+    buf[i] = Wire.read();
+    i++;
+  }
+  /*if (ret != i2cTransferDone)
+  {
+      return (uint16_t)ret;
+  }*/
+  return (uint16_t) 0;
+}
+
+uint8_t SI11xComponent::readI2c_8(uint8_t register_addr) {
+  uint8_t buffer[1] = {0};
+  Wire.beginTransmission(_i2caddr);
+  Wire.write(register_addr);
+  Wire.endTransmission();
+  Wire.requestFrom(_i2caddr, 1);
+  while (Wire.available()) {
+    buffer[0] = Wire.read();
+  }
+  return buffer[0];
+}
+
+uint16_t SI11xComponent::readI2c_16(uint8_t register_addr) {
+  uint8_t buffer[2] = {0, 0};
+  readI2c(register_addr, 2, buffer);
+  return (((uint16_t) buffer[1]) << 8) | (uint16_t) buffer[0];
+}
+
+/*****************************************************************************
+ * @brief
+ *   Structure Definition for calref array
+ ******************************************************************************/
+struct cal_ref_t {
+  uint32_t sirpd_adchi_irled; /**< Small IR PD gain, IR LED, Hi ADC Range     */
+  uint32_t sirpd_adclo_irled; /**< Small IR PD gain, IR LED, Lo ADC Range     */
+  uint32_t sirpd_adclo_whled; /**< Small IR PD gain, White LED, Lo ADC Range  */
+  uint32_t vispd_adchi_whled; /**< VIS PD gain, White LED, Lo ADC Range       */
+  uint32_t vispd_adclo_whled; /**< VIS PD gain, White LED, Lo ADC Range       */
+  uint32_t lirpd_adchi_irled; /**< Large IR PD gain, IR LED, Hi ADC Range     */
+  uint32_t ledi_65ma;         /**< LED Current Ratio at 65 mA                 */
+  uint8_t ucoef[4];           /**< UV Coefficient Storage                     */
+};
+
+/*****************************************************************************
+ * @brief
+ *   Factory Calibration Reference Values
+ ******************************************************************************/
+struct cal_ref_t calref[2] = {{
+                                  FLT_TO_FX20(4.021290),    // sirpd_adchi_irled
+                                  FLT_TO_FX20(57.528500),   // sirpd_adclo_irled
+                                  FLT_TO_FX20(2.690010),    // sirpd_adclo_whled
+                                  FLT_TO_FX20(0.042903),    // vispd_adchi_whled
+                                  FLT_TO_FX20(0.633435),    // vispd_adclo_whled
+                                  FLT_TO_FX20(23.902900),   // lirpd_adchi_irled
+                                  FLT_TO_FX20(56.889300),   // ledi_65ma
+                                  {0x7B, 0x6B, 0x01, 0x00}  // default ucoef
+                              },
+                              {
+                                  FLT_TO_FX20(2.325484),    // sirpd_adchi_irled
+                                  FLT_TO_FX20(33.541500),   // sirpd_adclo_irled
+                                  FLT_TO_FX20(1.693750),    // sirpd_adclo_whled
+                                  FLT_TO_FX20(0.026775),    // vispd_adchi_whled
+                                  FLT_TO_FX20(0.398443),    // vispd_adclo_whled
+                                  FLT_TO_FX20(12.190900),   // lirpd_adchi_irled
+                                  FLT_TO_FX20(56.558200),   // ledi_65ma
+                                  {0xdb, 0x8f, 0x01, 0x00}  // default ucoef
+                              }};
+/*****************************************************************************
+ * @brief
+ *   The fx20_divide and fx20_multiply uses this structure to pass
+ *   values into it.
+ ******************************************************************************/
+struct operand_t {
+  uint32_t op1; /**< Operand 1 */
+  uint32_t op2; /**< Operand 2 */
+};
+/*****************************************************************************
+ * @brief
+ *   Converts the 12-bit factory test value from the Si114x and returns the
+ *   fixed-point representation of this 12-bit factory test value.
+ ******************************************************************************/
+static uint32_t SI11xComponent::decode(uint32_t input) {
+  int32_t exponent, exponent_bias9;
+  uint32_t mantissa;
+
+  if (input == 0)
+    return 0.0;
+
+  exponent_bias9 = (input & 0x0f00) >> 8;
+  exponent = exponent_bias9 - 9;
+
+  mantissa = input & 0x00ff;  // fraction
+  mantissa |= 0x0100;         // add in integer
+
+  // representation in 12 bit integer, 20 bit fraction
+  mantissa = mantissa << (12 + exponent);
+  return mantissa;
+}
+/*****************************************************************************
+ * @brief
+ *   This performs a shift_left function. For convenience, a negative
+ *   shift value will shift the value right. Value pointed will be
+ *   overwritten.
+ ******************************************************************************/
+static void SI11xComponent::shift_left(uint32_t *value_p, int8_t shift) {
+  if (shift > 0)
+    *value_p = *value_p << shift;
+  else
+    *value_p = *value_p >> (-shift);
+}
+/*****************************************************************************
+ * @brief
+ *   The buffer[] is assumed to point to a byte array that containst the
+ *   factory calibration values after writing 0x12 to the command register
+ *   This function takes the 12 bytes from the Si114x, then converts it
+ *   to a fixed point representation, with the help of the decode() function
+ ******************************************************************************/
+static uint32_t SI11xComponent::collect(uint8_t *buffer, uint8_t msb_addr, uint8_t lsb_addr, uint8_t alignment) {
+  uint16_t value;
+  uint8_t msb_ind = msb_addr - 0x22;
+  uint8_t lsb_ind = lsb_addr - 0x22;
+
+  if (alignment == 0) {
+    value = buffer[msb_ind] << 4;
+    value += buffer[lsb_ind] >> 4;
+  } else {
+    value = buffer[msb_ind] << 8;
+    value += buffer[lsb_ind];
+    value &= 0x0fff;
+  }
+
+  if ((value == 0x0fff) || (value == 0x0000))
+    return FX20_BAD_VALUE;
+  return decode(value);
+}
+/*****************************************************************************
+ * @brief
+ *   Returns a fixed-point (20-bit fraction) after dividing op1/op2
+ ******************************************************************************/
+static uint32_t SI11xComponent::fx20_divide(struct operand_t *operand_p) {
+  int8_t numerator_sh = 0, denominator_sh = 0;
+  uint32_t result;
+  uint32_t *numerator_p;
+  uint32_t *denominator_p;
+
+  if (operand_p == NULL)
+    return FX20_BAD_VALUE;
+
+  numerator_p = &operand_p->op1;
+  denominator_p = &operand_p->op2;
+
+  if ((*numerator_p == FX20_BAD_VALUE) || (*denominator_p == FX20_BAD_VALUE) || (*denominator_p == 0))
+    return FX20_BAD_VALUE;
+
+  fx20_round(numerator_p);
+  fx20_round(denominator_p);
+  numerator_sh = align(numerator_p, ALIGN_LEFT);
+  denominator_sh = align(denominator_p, ALIGN_RIGHT);
+
+  result = *numerator_p / ((uint16_t) (*denominator_p));
+  shift_left(&result, 20 - numerator_sh - denominator_sh);
+
+  return result;
+}
+/*****************************************************************************
+ * @brief
+ *   Returns a fixed-point (20-bit fraction) after multiplying op1*op2
+ ******************************************************************************/
+static uint32_t SI11xComponent::fx20_multiply(struct operand_t *operand_p) {
+  uint32_t result;
+  int8_t val1_sh, val2_sh;
+  uint32_t *val1_p;
+  uint32_t *val2_p;
+
+  if (operand_p == NULL)
+    return FX20_BAD_VALUE;
+
+  val1_p = &(operand_p->op1);
+  val2_p = &(operand_p->op2);
+
+  fx20_round(val1_p);
+  fx20_round(val2_p);
+
+  val1_sh = align(val1_p, ALIGN_RIGHT);
+  val2_sh = align(val2_p, ALIGN_RIGHT);
+
+  result = (uint32_t) (((uint32_t) (*val1_p)) * ((uint32_t) (*val2_p)));
+  shift_left(&result, -20 + val1_sh + val2_sh);
+
+  return result;
+}
+/*****************************************************************************
+ * @brief
+ *   Rounds the uint32_t value pointed by value_p to 16 bits.
+ ******************************************************************************/
+static void SI11xComponent::fx20_round(uint32_t *value_p) {
+  int8_t shift;
+  uint32_t mask1 = 0xffff8000;
+  uint32_t mask2 = 0xffff0000;
+  uint32_t lsb = 0x00008000;
+
+  shift = align(value_p, ALIGN_LEFT);
+  if (((*value_p) & mask1) == mask1) {
+    *value_p = 0x80000000;
+    shift -= 1;
+  } else {
+    *value_p += lsb;
+    *value_p &= mask2;
+  }
+
+  shift_left(value_p, -shift);
+}
+/*****************************************************************************
+ * @brief
+ *   Aligns the value pointed by value_p to either the LEFT or RIGHT
+ *   the number of shifted bits is returned. The value in value_p is
+ *   overwritten.
+ ******************************************************************************/
+static int8_t SI11xComponent::align(uint32_t *value_p, int8_t direction) {
+  int8_t local_shift, shift;
+  uint32_t mask;
+
+  // Check invalid value_p and *value_p, return without shifting if bad.
+  if (value_p == NULL)
+    return 0;
+  if (*value_p == 0)
+    return 0;
+
+  // Make sure direction is valid
+  switch (direction) {
+    case ALIGN_LEFT:
+      local_shift = 1;
+      mask = 0x80000000L;
+      break;
+
+    case ALIGN_RIGHT:
+      local_shift = -1;
+      mask = 0x00000001L;
+      break;
+
+    default:
+      // Invalid direction, return without shifting
+      return 0;
+  }
+
+  shift = 0;
+  while (1) {
+    if (*value_p & mask)
+      break;
+    shift++;
+    shift_left(value_p, local_shift);
+  }
+  return shift;
+}
+/****************************************************************************
+ * @brief
+ *   Populates the SI114X_CAL_S structure
+ * @details
+ *   Performs some initial checking based on the security
+ *   level. If the checks fail, the function returns without attempting
+ *   to fetch calibration values. The reason for the checking is that the
+ *   Si114x uses the same registers to store calibration values as used for
+ *   storing proximity and ambient light measurements. Therefore, this function
+ *   needs to be used only if there is no possibility of an autonomous process
+ *   possibly overwriting the output registers.
+ *
+ *   If the checks are successful, then the si114x retrieves the compressed
+ *   values from the Si114x, then populates the SI114X_CAL_S   structure whose
+ *   pointer is passed to si114x_calibration()
+ *
+ *   If there are any errors, si114x_cal   is populated with default values
+ *
+ * @param[in] si114x_handle
+ *   The programmer's toolkit handle
+ * @param[out] si114x_cal
+ *   Points to the SI114X_CAL_S structure that will hold the calibration values
+ *   from the Si114x. If there are any errors, si114x_cal is populated with
+ *   default values.
+ * @param[in] security
+ * >        0            Minimal checking
+ * >
+ * >        1            Checks to make sure that interface registers
+ * >                     are zero, otherwise, returns -1
+ * >                     interface registers are zero only when the Si114x
+ * >                     has been reset, and no autonomous measurements have
+ * >                     started.
+ * @retval   0
+ *  Success
+ * @retval  -1
+ *   Security Check failed
+ * @retval  -2
+ *   i2c communication error
+ * @retval  -3
+ *   Chip does not support factory calibration
+ * @retval  -4
+ *   Null pointers found for si114x_handle or si114x_cal
+ ******************************************************************************/
+/*
+ * Side-effects:
+ *     - Writes 0x11 to command reg to retrieve factory calibration values in
+ *       buffer[0] to buffer[11]
+ *
+ *     - Calls the various helper functions such as vispd_correction()
+ *       irpd_correction, to populate the SI114X_CAL_S structure
+ *
+ *     - Writes 0x12 to command reg to retrieve factory cal_index to
+ *       buffer[12] to buffer[13]
+ ******************************************************************************/
+int16_t SI11xComponent::si114x_get_calibration(SI114X_CAL_S *si114x_cal, uint8_t security) {
+  uint8_t buffer[14];
+  int16_t retval = 0;
+  uint8_t response;
+
+  if (si114x_cal == NULL) {
+    retval = -4;
+    goto error_exit;
+  }
+
+  // if requested, check to make sure the interface registers are zero
+  // as an indication of a device that has not started any autonomous
+  // operation
+  if (security == 1) {
+    int8_t i;
+
+    retval = readI2c(SI_REG_VISIBLE_DATA, 12, buffer);
+    // retval = Si114xBlockRead( si114x_handle, REG_ALS_VIS_DATA0, 12, buffer );
+    if (retval != 0) {
+      retval = -2;
+      goto error_exit;
+    }
+
+    for (i = 0; i < 12; i++) {
+      if (buffer[i] != 0) {
+        retval = -1;
+        goto error_exit;
+      }
+    }
+  }
+
+  // Check to make sure that the device is ready to receive commands
+  do {
+    retval = writeI2c(SI_REG_COMMAND, SI_NOP);
+    // retval = Si114xNop( si114x_handle );
+    if (retval != 0) {
+      retval = -2;
+      goto error_exit;
+    }
+
+    response = readI2c_8(SI_REG_RESPONSE);
+    // response = Si114xReadFromRegister( si114x_handle, REG_RESPONSE );
+    if (response != 0) {
+      delay(1);
+    }
+  } while (response != 0);
+
+  // Request for the calibration data
+  retval = writeI2c(SI_REG_COMMAND, 0x12);
+  // retval = Si114xWriteToRegister( si114x_handle, REG_COMMAND, 0x12 );
+  _waitUntilSleep();
+
+  if (retval != 0) {
+    retval = -2;
+    goto error_exit;
+  }
+
+  // Wait for the response register to increment
+  do {
+    response = readI2c_8(SI_REG_RESPONSE);
+    // response = Si114xReadFromRegister( si114x_handle, REG_RESPONSE );
+    //  If the upper nibbles are non-zero, something is wrong
+    if (response == 0x80) {
+      // calibration code has not been implemented on this device
+      // leading to command error. So, rather than returning an
+      // error, handle the error by Nop and set ratios to -1.0
+      // and return normally.
+      writeI2c(SI_REG_COMMAND, SI_NOP);
+      // Si114xNop( si114x_handle );
+      retval = -3;
+      goto error_exit;
+    } else if (response & 0xfff0) {
+      // if upper nibble is anything but 0x80, exit with an error
+      retval = -2;
+      goto error_exit;
+    }
+    if (response != 1) {
+      delay(1);
+    }
+  } while (response != 1);
+
+  // Retrieve the 12 bytes from the interface registers
+  retval = readI2c(SI_REG_VISIBLE_DATA, 12, buffer);
+  if (retval != 0) {
+    retval = -2;
+    goto error_exit;
+  }
+
+  retval = si114x_get_cal_index(buffer);
+
+  if (retval != 0) {
+    retval = -2;
+    goto error_exit;
+  }
+
+  si114x_cal->ledi_ratio = ledi_ratio(buffer);
+  si114x_cal->vispd_correction = vispd_correction(buffer);
+  si114x_cal->irpd_correction = irpd_correction(buffer);
+  si114x_cal->adcrange_ratio = adcrange_ratio(buffer);
+  si114x_cal->ucoef_p = calref[find_cal_index(buffer)].ucoef;
+  si114x_cal->irsize_ratio = irsize_ratio(buffer);
+
+  return 0;
+
+error_exit:
+  si114x_cal->vispd_correction = FX20_ONE;
+  si114x_cal->irpd_correction = FX20_ONE;
+  si114x_cal->adcrange_ratio = FLT_TO_FX20(14.5);
+  si114x_cal->irsize_ratio = FLT_TO_FX20(6.0);
+  si114x_cal->ledi_ratio = FX20_ONE;
+  si114x_cal->ucoef_p = NULL;
+  return retval;
+}
+/*****************************************************************************
+ * @brief
+ *   Initializes the Si113x/46/47/48 UCOEF Registers.
+ *
+ * @details
+ *   Takes in an optional input ucoef pointer, then modifies
+ *   it based on calibration. If the input ucoef is NULL, default values for
+ *   clear overlay is assumed and then the si114x_cal is used to adjust it
+ *   before setting the ucoef. Note that the Si114x ucoef registers are
+ *   updated by this function; no additional action is required. This routine
+ *   also performs the necessary querying of the chip identification to make
+ *   sure that it is a uvindex-capable device.
+ * @param[in] input_ucoef
+ *   if NULL, a clear overlay is assumed, and datasheet values for ucoef is
+ *   used. Otherwise, pointer to 4 bytes array representing the reference
+ *   coefficients is passed.
+ * @param[in] si114x_cal
+ *   Points to the SI114X_CAL_S structure that holds the calibration values
+ *   from the Si113x/4x
+ * @retval   0
+ *   Success
+ * @retval  -1
+ *   The device is neither Si1132, Si1145, Si1146 nor Si1147
+ * @retval  <-1
+ *   Error
+ ******************************************************************************/
+int16_t SI11xComponent::si114x_set_ucoef(uint8_t *input_ucoef, SI114X_CAL_S *si114x_cal) {
+  int8_t response;
+  uint8_t temp;
+  uint32_t vc = FX20_ONE, ic = FX20_ONE, long_temp;
+  struct operand_t op;
+  uint8_t *ref_ucoef = si114x_cal->ucoef_p;
+  // uint8_t          out_ucoef[4];
+
+  if (input_ucoef != NULL)
+    ref_ucoef = input_ucoef;
+
+  if (ref_ucoef == NULL)
+    return -1;
+
+  // retrieve part identification
+  response = readI2c_8(SI_REG_PARTID);
+  // response = Si114xReadFromRegister( si114x_handle, REG_PART_ID );
+  switch (response) {
+    case 0x32:
+    case 0x45:
+    case 0x46:
+    case 0x47:
+      temp = 1;
+      break;
+    default:
+      temp = 0;
+      break;
+  }
+  if (!temp)
+    return -1;
+
+  if (si114x_cal != 0) {
+    if (si114x_cal->vispd_correction > 0)
+      vc = si114x_cal->vispd_correction;
+    if (si114x_cal->irpd_correction > 0)
+      ic = si114x_cal->irpd_correction;
+  }
+
+  op.op1 = ref_ucoef[0] + ((ref_ucoef[1]) << 8);
+  op.op2 = vc;
+  long_temp = fx20_multiply(&op);
+  _coefficients[0] = (long_temp & 0x00ff);
+  _coefficients[1] = (long_temp & 0xff00) >> 8;
+
+  op.op1 = ref_ucoef[2] + (ref_ucoef[3] << 8);
+  op.op2 = ic;
+  long_temp = fx20_multiply(&op);
+  _coefficients[2] = (long_temp & 0x00ff);
+  _coefficients[3] = (long_temp & 0xff00) >> 8;
+
+  writeI2c(SI_REG_UCOEFF0, _coefficients[0]);
+  writeI2c(SI_REG_UCOEFF1, _coefficients[1]);
+  writeI2c(SI_REG_UCOEFF2, _coefficients[2]);
+  response = writeI2c(SI_REG_UCOEFF3, _coefficients[3]);
+  // response = Si114xBlockWrite( si114x_handle, REG_UCOEF0 , 4, out_ucoef);
+
+  return response;
+}
+/*****************************************************************************
+ * @brief
+ *   This is a helper function called from si114x_get_calibration()
+ *   Writes 0x11 to the Command Register, then populates buffer[12]
+ *   and buffer[13] with the factory calibration index
+ ******************************************************************************/
+static int16_t SI11xComponent::si114x_get_cal_index(uint8_t *buf) {
+  int16_t retval;
+  uint8_t response;
+
+  if (buf == NULL)
+    return -1;
+
+  // Check to make sure that the device is ready to receive commands
+  do {
+    retval = writeI2c(SI_REG_COMMAND, SI_NOP);
+    // retval = Si114xNop( si114x_handle );
+    if (retval != 0)
+      return -1;
+
+    response = readI2c_8(SI_REG_RESPONSE);
+    // response = Si114xReadFromRegister( si114x_handle, REG_RESPONSE );
+    if (response != 0) {
+      delay(1);
+    }
+  } while (response != 0);
+
+  // Retrieve the index
+  retval = writeI2c(SI_REG_COMMAND, 0x11);
+  // retval = Si114xWriteToRegister( si114x_handle, REG_COMMAND, 0x11 );
+  _waitUntilSleep();
+
+  if (retval != 0)
+    return -1;
+
+  retval = readI2c(REG_PS1_DATA0, 2, &(buf[12]));
+  // retval = Si114xBlockRead( si114x_handle, REG_PS1_DATA0, 2, &(buffer[12]) );
+  if (retval != 0)
+    return -1;
+
+  return 0;
+}
+
+#define LOOP_TIMEOUT_MS 200
+/*****************************************************************************
+ * @brief
+ *   Waits until the Si113x/4x is sleeping before proceeding
+ ******************************************************************************/
+static int16_t SI11xComponent::_waitUntilSleep() {
+  int8_t response = -1;
+  uint8_t count = 0;
+  // This loops until the Si114x is known to be in its sleep state
+  // or if an i2c error occurs
+  while (count < LOOP_TIMEOUT_MS) {
+    response = readI2c_8(REG_CHIP_STAT);
+    // response = Si114xReadFromRegister(si114x_handle, REG_CHIP_STAT);
+    if (response == 1)
+      break;
+    if (response < 0)
+      return (int16_t) response;
+    count++;
+    delay(1);
+  }
+  return 0;
+}
+
+/*****************************************************************************
+ * @brief
+ *   Returns the ratio to adjust for differences in IRLED drive strength. Note
+ *   that this does not help with LED irradiance variation.
+ ******************************************************************************/
+static uint32_t SI11xComponent::ledi_ratio(uint8_t *buffer) {
+  struct operand_t op;
+  uint32_t result;
+  int16_t index;
+
+  index = find_cal_index(buffer);
+
+  if (index < 0)
+    result = FX20_ONE;
+
+  // op.op1 = LED_DRV65_REF; op.op2 = LED_DRV65;
+  op.op1 = calref[index].ledi_65ma;
+  op.op2 = LED_DRV65;
+  result = fx20_divide(&op);
+
+  if (result == FX20_BAD_VALUE)
+    result = FX20_ONE;
+
+  return result;
+}
+
+/*****************************************************************************
+ * @brief
+ *   Due to small differences in factory test setup, the reference calibration
+ *   values may have slight variation. This function retrieves the calibration
+ *   index stored in the Si114x so that it is possible to know which calibration
+ *   reference values to use.
+ ******************************************************************************/
+static int16_t SI11xComponent::find_cal_index(uint8_t *buffer) {
+  int16_t index;
+  uint8_t size;
+
+  // buffer[12] is the LSB, buffer[13] is the MSB
+  index = (int16_t) (buffer[12] + ((uint16_t) (buffer[13]) << 8));
+
+  switch (index) {
+    case -1:
+      index = 0;
+      break;
+    case -2:
+      index = 0;
+      break;
+    case -3:
+      index = 1;
+    default:
+      index = -(4 + index);
+  }
+
+  size = sizeof(calref) / sizeof(calref[0]);
+
+  if (index < size)
+    return index;
+
+  return -1;
+}
+/*****************************************************************************
+ * @brief
+ *   Returns the calibration ratio to be applied to VIS measurements
+ ******************************************************************************/
+static uint32_t SI11xComponent::vispd_correction(uint8_t *buffer) {
+  struct operand_t op;
+  uint32_t result;
+  int16_t index = find_cal_index(buffer);
+
+  if (index < 0)
+    result = FX20_ONE;
+
+  op.op1 = calref[index].vispd_adclo_whled;
+  op.op2 = VISPD_ADCLO_WHLED;
+  result = fx20_divide(&op);
+
+  if (result == FX20_BAD_VALUE)
+    result = FX20_ONE;
+
+  return result;
+}
+/*****************************************************************************
+ * @brief
+ *   Returns the calibration ratio to be applied to IR measurements
+ ******************************************************************************/
+static uint32_t SI11xComponent::irpd_correction(uint8_t *buffer) {
+  struct operand_t op;
+  uint32_t result;
+  int16_t index = find_cal_index(buffer);
+
+  if (index < 0)
+    result = FX20_ONE;
+
+  // op.op1 = SIRPD_ADCLO_IRLED_REF; op.op2 = SIRPD_ADCLO_IRLED;
+  op.op1 = calref[index].sirpd_adclo_irled;
+  op.op2 = SIRPD_ADCLO_IRLED;
+  result = fx20_divide(&op);
+
+  if (result == FX20_BAD_VALUE)
+    result = FX20_ONE;
+
+  return result;
+}
+/*****************************************************************************
+ * @brief
+ *   Returns the ratio to correlate between x_RANGE=0 and x_RANGE=1
+ *   It is typically 14.5, but may have some slight component-to-component
+ *   differences.
+ ******************************************************************************/
+static uint32_t SI11xComponent::adcrange_ratio(uint8_t *buffer) {
+  struct operand_t op;
+  uint32_t result;
+
+  op.op1 = SIRPD_ADCLO_IRLED;
+  op.op2 = SIRPD_ADCHI_IRLED;
+  result = fx20_divide(&op);
+
+  if (result == FX20_BAD_VALUE)
+    result = FLT_TO_FX20(14.5);
+
+  return result;
+}
+/***************************************************************************
+ * @brief
+ *   Returns the ratio to correlate between measurements made from large PD
+ *   to measurements made from small PD.
+ ******************************************************************************/
+static uint32_t SI11xComponent::irsize_ratio(uint8_t *buffer) {
+  struct operand_t op;
+  uint32_t result;
+
+  op.op1 = LIRPD_ADCHI_IRLED;
+  op.op2 = SIRPD_ADCHI_IRLED;
+
+  result = fx20_divide(&op);
+
+  if (result == FX20_BAD_VALUE)
+    result = FLT_TO_FX20(6.0);
+
+  return result;
+}
+
+}  // namespace si11x
+}  // namespace esphome
