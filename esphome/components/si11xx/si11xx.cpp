@@ -102,9 +102,9 @@ uint8_t SI11xComponent::read_value_(uint8_t reg) {
 uint16_t SI11xComponent::read_value16_(uint8_t reg) {
   uint16_t data;
   if (!this->read_bytes(reg, reinterpret_cast<uint8_t *>(&data), 2)) {
-    ESP_LOGW(TAG, "Error reading data register");
-    this->status_set_warning();
-    return;
+    this->error_code_ = READ_FAILED;
+    this->mark_failed();
+    return 0;
   }
   delay(SI11X_DELAY);
   return data;
@@ -355,9 +355,7 @@ uint16_t SI11xComponent::readProximity() {
  @brief Read UV
  @param [out] uv rawdata
 */
-uint16_t SI11xComponent::readUV() {
-  return uv_index = this->read_value16_(SI_REG_UV_DATA);
-}
+uint16_t SI11xComponent::readUV() { return this->read_value16_(SI_REG_UV_DATA); }
 
 /**
  @brief Read UV
@@ -408,10 +406,7 @@ uint16_t SI11xComponent::readVisible() {
  @param [in] num Data Length
  @param [out] *buf Read Data
 */
-uint16_t SI11xComponent::readI2c(uint8_t register_addr, uint8_t num, uint8_t *buf) {
-
-  return (uint16_t) 0;
-}
+uint16_t SI11xComponent::readI2c(uint8_t register_addr, uint8_t num, uint8_t *buf) { return (uint16_t) 0; }
 
 uint8_t SI11xComponent::readI2c_8(uint8_t register_addr) {
   uint8_t buffer[1] = {0};
@@ -477,7 +472,7 @@ struct operand_t {
  *   Converts the 12-bit factory test value from the Si114x and returns the
  *   fixed-point representation of this 12-bit factory test value.
  ******************************************************************************/
-static uint32_t SI11xComponent::decode(uint32_t input) {
+uint32_t SI11xComponent::decode(uint32_t input) {
   int32_t exponent, exponent_bias9;
   uint32_t mantissa;
 
@@ -513,7 +508,7 @@ void SI11xComponent::shift_left(uint32_t *value_p, int8_t shift) {
  *   This function takes the 12 bytes from the Si114x, then converts it
  *   to a fixed point representation, with the help of the decode() function
  ******************************************************************************/
-static uint32_t SI11xComponent::collect(uint8_t *buffer, uint8_t msb_addr, uint8_t lsb_addr, uint8_t alignment) {
+uint32_t SI11xComponent::collect(uint8_t *buffer, uint8_t msb_addr, uint8_t lsb_addr, uint8_t alignment) {
   uint16_t value;
   uint8_t msb_ind = msb_addr - 0x22;
   uint8_t lsb_ind = lsb_addr - 0x22;
@@ -535,7 +530,7 @@ static uint32_t SI11xComponent::collect(uint8_t *buffer, uint8_t msb_addr, uint8
  * @brief
  *   Returns a fixed-point (20-bit fraction) after dividing op1/op2
  ******************************************************************************/
-static uint32_t SI11xComponent::fx20_divide(struct operand_t *operand_p) {
+uint32_t SI11xComponent::fx20_divide(struct operand_t *operand_p) {
   int8_t numerator_sh = 0, denominator_sh = 0;
   uint32_t result;
   uint32_t *numerator_p;
@@ -564,7 +559,7 @@ static uint32_t SI11xComponent::fx20_divide(struct operand_t *operand_p) {
  * @brief
  *   Returns a fixed-point (20-bit fraction) after multiplying op1*op2
  ******************************************************************************/
-static uint32_t SI11xComponent::fx20_multiply(struct operand_t *operand_p) {
+uint32_t SI11xComponent::fx20_multiply(struct operand_t *operand_p) {
   uint32_t result;
   int8_t val1_sh, val2_sh;
   uint32_t *val1_p;
@@ -614,7 +609,7 @@ void SI11xComponent::fx20_round(uint32_t *value_p) {
  *   the number of shifted bits is returned. The value in value_p is
  *   overwritten.
  ******************************************************************************/
-static int8_t SI11xComponent::align(uint32_t *value_p, int8_t direction) {
+int8_t SI11xComponent::align(uint32_t *value_p, int8_t direction) {
   int8_t local_shift, shift;
   uint32_t mask;
 
@@ -907,7 +902,7 @@ int16_t SI11xComponent::si114x_set_ucoef(uint8_t *input_ucoef, SI114X_CAL_S *si1
  *   Writes 0x11 to the Command Register, then populates buffer[12]
  *   and buffer[13] with the factory calibration index
  ******************************************************************************/
-static int16_t SI11xComponent::si114x_get_cal_index(uint8_t *buf) {
+int16_t SI11xComponent::si114x_get_cal_index(uint8_t *buf) {
   int16_t retval;
   uint8_t response;
 
@@ -949,7 +944,7 @@ static int16_t SI11xComponent::si114x_get_cal_index(uint8_t *buf) {
  * @brief
  *   Waits until the Si113x/4x is sleeping before proceeding
  ******************************************************************************/
-static int16_t SI11xComponent::_waitUntilSleep() {
+int16_t SI11xComponent::_waitUntilSleep() {
   int8_t response = -1;
   uint8_t count = 0;
   // This loops until the Si114x is known to be in its sleep state
@@ -972,7 +967,7 @@ static int16_t SI11xComponent::_waitUntilSleep() {
  *   Returns the ratio to adjust for differences in IRLED drive strength. Note
  *   that this does not help with LED irradiance variation.
  ******************************************************************************/
-static uint32_t SI11xComponent::ledi_ratio(uint8_t *buffer) {
+uint32_t SI11xComponent::ledi_ratio(uint8_t *buffer) {
   struct operand_t op;
   uint32_t result;
   int16_t index;
@@ -1000,7 +995,7 @@ static uint32_t SI11xComponent::ledi_ratio(uint8_t *buffer) {
  *   index stored in the Si114x so that it is possible to know which calibration
  *   reference values to use.
  ******************************************************************************/
-static int16_t SI11xComponent::find_cal_index(uint8_t *buffer) {
+int16_t SI11xComponent::find_cal_index(uint8_t *buffer) {
   int16_t index;
   uint8_t size;
 
@@ -1031,7 +1026,7 @@ static int16_t SI11xComponent::find_cal_index(uint8_t *buffer) {
  * @brief
  *   Returns the calibration ratio to be applied to VIS measurements
  ******************************************************************************/
-static uint32_t SI11xComponent::vispd_correction(uint8_t *buffer) {
+uint32_t SI11xComponent::vispd_correction(uint8_t *buffer) {
   struct operand_t op;
   uint32_t result;
   int16_t index = find_cal_index(buffer);
@@ -1052,7 +1047,7 @@ static uint32_t SI11xComponent::vispd_correction(uint8_t *buffer) {
  * @brief
  *   Returns the calibration ratio to be applied to IR measurements
  ******************************************************************************/
-static uint32_t SI11xComponent::irpd_correction(uint8_t *buffer) {
+uint32_t SI11xComponent::irpd_correction(uint8_t *buffer) {
   struct operand_t op;
   uint32_t result;
   int16_t index = find_cal_index(buffer);
@@ -1076,7 +1071,7 @@ static uint32_t SI11xComponent::irpd_correction(uint8_t *buffer) {
  *   It is typically 14.5, but may have some slight component-to-component
  *   differences.
  ******************************************************************************/
-static uint32_t SI11xComponent::adcrange_ratio(uint8_t *buffer) {
+uint32_t SI11xComponent::adcrange_ratio(uint8_t *buffer) {
   struct operand_t op;
   uint32_t result;
 
@@ -1094,7 +1089,7 @@ static uint32_t SI11xComponent::adcrange_ratio(uint8_t *buffer) {
  *   Returns the ratio to correlate between measurements made from large PD
  *   to measurements made from small PD.
  ******************************************************************************/
-static uint32_t SI11xComponent::irsize_ratio(uint8_t *buffer) {
+uint32_t SI11xComponent::irsize_ratio(uint8_t *buffer) {
   struct operand_t op;
   uint32_t result;
 

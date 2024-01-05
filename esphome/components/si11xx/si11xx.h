@@ -9,7 +9,6 @@ namespace si11x {
 
 #define I2C_ADDRESS 0x60  // SI11xx Address
 
-
 // Visible Data register
 #define SI_REG_VISIBLE_DATA 0x22
 // IR Data register
@@ -20,9 +19,6 @@ namespace si11x {
 #define SI_REG_UV_DATA 0x2C
 
 #define SI_I2C_PARAM_OFFSET 0x00
-
-
-
 
 // ALS VIS ALIGN
 #define SI_ALS_VIS_ALIGN 0x10
@@ -76,8 +72,6 @@ namespace si11x {
 #define SI_IRQEN_PS1EVERYSAMPLE 0x04
 #define SI_IRQEN_PS2EVERYSAMPLE 0x08
 #define SI_IRQEN_PS3EVERYSAMPLE 0x10
-
-
 
 // INCLUDE_SI114X_CALIBRATIONCODE
 #define FLT_TO_FX20(x) ((int32_t) ((x * 1048576) + .5))
@@ -141,7 +135,7 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
   void get_device_();
   void reset_();
   uint8_t read_value_(uint8_t /*reg*/);
-  uint16_t read_value16_(uint8_t /*reg*/) 
+  uint16_t read_value16_(uint8_t /*reg*/);
   bool set_value_(uint8_t /*reg*/, uint8_t /*mode*/);
   void write_param_(uint8_t /*register_addr*/, uint8_t /*value*/);
 
