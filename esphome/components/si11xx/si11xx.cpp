@@ -89,14 +89,25 @@ static const uint8_t SI_CHIPLIST_EN_PS2 = 0x02;
 static const uint8_t SI_CHIPLIST_EN_PS3 = 0x04;
 
 uint8_t SI11xComponent::read_value_(uint8_t reg) {
-  uint8_t status_value;
-  if (!this->read_byte(reg, &status_value)) {
+  uint8_t data;
+  if (!this->read_byte(reg, &data)) {
     this->error_code_ = READ_FAILED;
     this->mark_failed();
     return 0;
   }
   delay(SI11X_DELAY);
-  return status_value;
+  return data;
+}
+
+uint16_t SI11xComponent::read_value16_(uint8_t reg) {
+  uint16_t data;
+  if (!this->read_bytes(reg, reinterpret_cast<uint8_t *>(&data), 2)) {
+    ESP_LOGW(TAG, "Error reading data register");
+    this->status_set_warning();
+    return;
+  }
+  delay(SI11X_DELAY);
+  return data;
 }
 
 // Set any register value and handle errors
@@ -140,7 +151,7 @@ void SI11xComponent::setup() {
 }
 
 void SI11xComponent::update() {
-// loop return sensor values
+  // loop return sensor values
 }
 
 void SI11xComponent::dump_config() {
@@ -169,34 +180,26 @@ void SI11xComponent::dump_config() {
       ESP_LOGD(TAG, "Setup successful");
       break;
   }
-  //this->read_config_();
-  //ESP_LOGI(TAG, "Firmware Version: %d.%d.%d", this->firmware_ver_major_, this->firmware_ver_minor_,
-  //         this->firmware_ver_build_);
+  // this->read_config_();
+  // ESP_LOGI(TAG, "Firmware Version: %d.%d.%d", this->firmware_ver_major_, this->firmware_ver_minor_,
+  //          this->firmware_ver_build_);
   LOG_I2C_DEVICE(this);
   LOG_UPDATE_INTERVAL(this);
-  //LOG_SENSOR("  ", "CO2 Sensor:", this->co2_);
-  //LOG_SENSOR("  ", "TVOC Sensor:", this->tvoc_);
-  //LOG_SENSOR("  ", "AQI Sensor:", this->aqi_);
+  // LOG_SENSOR("  ", "CO2 Sensor:", this->co2_);
+  // LOG_SENSOR("  ", "TVOC Sensor:", this->tvoc_);
+  // LOG_SENSOR("  ", "AQI Sensor:", this->aqi_);
 
-  //if (this->temperature_ != nullptr && this->humidity_ != nullptr) {
-  //  LOG_SENSOR("  ", "  Temperature Compensation:", this->temperature_);
-  //  LOG_SENSOR("  ", "  Humidity Compensation:", this->humidity_);
-  //} else {
-  //  ESP_LOGCONFIG(TAG, "  Compensation: Not configured");
-  //}
+  // if (this->temperature_ != nullptr && this->humidity_ != nullptr) {
+  //   LOG_SENSOR("  ", "  Temperature Compensation:", this->temperature_);
+  //   LOG_SENSOR("  ", "  Humidity Compensation:", this->humidity_);
+  // } else {
+  //   ESP_LOGCONFIG(TAG, "  Compensation: Not configured");
+  // }
 }
 
-bool SI11xComponent::get_device_() {
-  uint8_t device = 0x00;
-  readI2c(SI_REG_PARTID, 1, &device);
-  this->_device_type_ = device;
-}
+void SI11xComponent::get_device_() { this->_device_type_ = this->read_value_(SI_REG_PARTID); }
 
 bool SI11xComponent::configuration_1132_() {
-  // Reset
-  // writeI2c(0x22, 0x01);
-  // delay(100);
-
   // enable UVindex measurement coefficients!
   this->set_calibrated_coefficients_();
   // writeI2c(SI_REG_UCOEFF0, 0x7B);
@@ -237,10 +240,6 @@ bool SI11xComponent::configuration_1132_() {
  @brief Set Config
 */
 bool SI11xComponent::configuration_1145_() {
-  // Reset
-  // writeI2c(0x22, 0x01);
-  // delay(100);
-
   // enable UVindex measurement coefficients!
   this->set_calibrated_coefficients_();
   // writeI2c(SI_REG_UCOEFF0, 0x29);
@@ -349,9 +348,7 @@ void SI11xComponent::setInfraRedParams() {
 uint16_t SI11xComponent::readProximity() {
   if (!this->proximity_supported_ && this->ProximityLedAttached)
     return 0;
-  uint16_t prox;
-  prox = readI2c_16(SI_REG_PROX_DATA);
-  return prox;
+  return this->read_value16_(SI_REG_PROX_DATA);
 }
 
 /**
@@ -359,9 +356,7 @@ uint16_t SI11xComponent::readProximity() {
  @param [out] uv rawdata
 */
 uint16_t SI11xComponent::readUV() {
-  uint16_t uv_index;
-  uv_index = readI2c_16(SI_REG_UV_DATA);
-  return uv_index;
+  return uv_index = this->read_value16_(SI_REG_UV_DATA);
 }
 
 /**
@@ -373,7 +368,7 @@ float SI11xComponent::readUVIndex() {
   return uv;
 }
 
-char *SI11xComponent::readUVScore(float uv_index) {
+/*char *SI11xComponent::readUVScore(float uv_index) {
   if (uv_index <= 2.0)
     return "low";
   if (uv_index <= 5.0)
@@ -383,7 +378,7 @@ char *SI11xComponent::readUVScore(float uv_index) {
   if (uv_index <= 10.0)
     return "very high";
   return "extreme";
-}
+}*/
 
 /**
  @brief Read IR
@@ -408,53 +403,18 @@ uint16_t SI11xComponent::readVisible() {
 }
 
 /**
- @brief Write I2C Data
- @param [in] register_addr Write Register Address
- @param [in] value Write Data
-*/
-uint16_t SI11xComponent::writeI2c(uint8_t register_addr, uint8_t value) {
-  Wire.beginTransmission(_i2caddr);
-  Wire.write(register_addr);
-  Wire.write(value);
-  Wire.endTransmission();
-
-  // add sanity check of operation
-  return (uint16_t) 0;
-}
-
-/**
  @brief Read I2C Data
  @param [in] register_addr register address
  @param [in] num Data Length
  @param [out] *buf Read Data
 */
 uint16_t SI11xComponent::readI2c(uint8_t register_addr, uint8_t num, uint8_t *buf) {
-  Wire.beginTransmission(_i2caddr);
-  Wire.write(register_addr);
-  Wire.endTransmission();
-  Wire.requestFrom(_i2caddr, num);
 
-  int i = 0;
-  while (Wire.available()) {
-    buf[i] = Wire.read();
-    i++;
-  }
-  /*if (ret != i2cTransferDone)
-  {
-      return (uint16_t)ret;
-  }*/
   return (uint16_t) 0;
 }
 
 uint8_t SI11xComponent::readI2c_8(uint8_t register_addr) {
   uint8_t buffer[1] = {0};
-  Wire.beginTransmission(_i2caddr);
-  Wire.write(register_addr);
-  Wire.endTransmission();
-  Wire.requestFrom(_i2caddr, 1);
-  while (Wire.available()) {
-    buffer[0] = Wire.read();
-  }
   return buffer[0];
 }
 
@@ -540,7 +500,7 @@ static uint32_t SI11xComponent::decode(uint32_t input) {
  *   shift value will shift the value right. Value pointed will be
  *   overwritten.
  ******************************************************************************/
-static void SI11xComponent::shift_left(uint32_t *value_p, int8_t shift) {
+void SI11xComponent::shift_left(uint32_t *value_p, int8_t shift) {
   if (shift > 0)
     *value_p = *value_p << shift;
   else
@@ -631,7 +591,7 @@ static uint32_t SI11xComponent::fx20_multiply(struct operand_t *operand_p) {
  * @brief
  *   Rounds the uint32_t value pointed by value_p to 16 bits.
  ******************************************************************************/
-static void SI11xComponent::fx20_round(uint32_t *value_p) {
+void SI11xComponent::fx20_round(uint32_t *value_p) {
   int8_t shift;
   uint32_t mask1 = 0xffff8000;
   uint32_t mask2 = 0xffff0000;
@@ -777,7 +737,7 @@ int16_t SI11xComponent::si114x_get_calibration(SI114X_CAL_S *si114x_cal, uint8_t
 
   // Check to make sure that the device is ready to receive commands
   do {
-    retval = writeI2c(SI_REG_COMMAND, SI_NOP);
+    retval = this->set_value_(SI_REG_COMMAND, SI_NOP);
     // retval = Si114xNop( si114x_handle );
     if (retval != 0) {
       retval = -2;
@@ -792,7 +752,7 @@ int16_t SI11xComponent::si114x_get_calibration(SI114X_CAL_S *si114x_cal, uint8_t
   } while (response != 0);
 
   // Request for the calibration data
-  retval = writeI2c(SI_REG_COMMAND, 0x12);
+  retval = this->set_value_(SI_REG_COMMAND, 0x12);
   // retval = Si114xWriteToRegister( si114x_handle, REG_COMMAND, 0x12 );
   _waitUntilSleep();
 
@@ -811,7 +771,7 @@ int16_t SI11xComponent::si114x_get_calibration(SI114X_CAL_S *si114x_cal, uint8_t
       // leading to command error. So, rather than returning an
       // error, handle the error by Nop and set ratios to -1.0
       // and return normally.
-      writeI2c(SI_REG_COMMAND, SI_NOP);
+      this->set_value_(SI_REG_COMMAND, SI_NOP);
       // Si114xNop( si114x_handle );
       retval = -3;
       goto error_exit;
@@ -933,10 +893,10 @@ int16_t SI11xComponent::si114x_set_ucoef(uint8_t *input_ucoef, SI114X_CAL_S *si1
   _coefficients[2] = (long_temp & 0x00ff);
   _coefficients[3] = (long_temp & 0xff00) >> 8;
 
-  writeI2c(SI_REG_UCOEFF0, _coefficients[0]);
-  writeI2c(SI_REG_UCOEFF1, _coefficients[1]);
-  writeI2c(SI_REG_UCOEFF2, _coefficients[2]);
-  response = writeI2c(SI_REG_UCOEFF3, _coefficients[3]);
+  this->set_value_(SI_REG_UCOEFF0, _coefficients[0]);
+  this->set_value_(SI_REG_UCOEFF1, _coefficients[1]);
+  this->set_value_(SI_REG_UCOEFF2, _coefficients[2]);
+  response = this->set_value_(SI_REG_UCOEFF3, _coefficients[3]);
   // response = Si114xBlockWrite( si114x_handle, REG_UCOEF0 , 4, out_ucoef);
 
   return response;
@@ -956,7 +916,7 @@ static int16_t SI11xComponent::si114x_get_cal_index(uint8_t *buf) {
 
   // Check to make sure that the device is ready to receive commands
   do {
-    retval = writeI2c(SI_REG_COMMAND, SI_NOP);
+    retval = this->set_value_(SI_REG_COMMAND, SI_NOP);
     // retval = Si114xNop( si114x_handle );
     if (retval != 0)
       return -1;
@@ -969,7 +929,7 @@ static int16_t SI11xComponent::si114x_get_cal_index(uint8_t *buf) {
   } while (response != 0);
 
   // Retrieve the index
-  retval = writeI2c(SI_REG_COMMAND, 0x11);
+  retval = this->set_value_(SI_REG_COMMAND, 0x11);
   // retval = Si114xWriteToRegister( si114x_handle, REG_COMMAND, 0x11 );
   _waitUntilSleep();
 

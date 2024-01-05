@@ -138,9 +138,10 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
   bool proximity_supported_{0};
   uint8_t _coefficients[4];
 
-  bool get_device_();
+  void get_device_();
   void reset_();
   uint8_t read_value_(uint8_t /*reg*/);
+  uint16_t read_value16_(uint8_t /*reg*/) 
   bool set_value_(uint8_t /*reg*/, uint8_t /*mode*/);
   void write_param_(uint8_t /*register_addr*/, uint8_t /*value*/);
 
