@@ -10,9 +10,10 @@
 #include "esphome/core/hal.h"
 
 namespace esphome {
-namespace si11x {
+namespace si11xx {
 
-static const char *const TAG = "si11x";
+static const char *const TAG = "si11xx";
+static const uint8_t I2C_ADDRESS = 0x60;  // SI11xx Address
 
 static const uint8_t SI11X_DELAY = 30;
 
@@ -87,6 +88,74 @@ static const uint8_t SI_CHIPLIST_EN_ALS_VIS = 0x10;
 static const uint8_t SI_CHIPLIST_EN_PS1 = 0x01;
 static const uint8_t SI_CHIPLIST_EN_PS2 = 0x02;
 static const uint8_t SI_CHIPLIST_EN_PS3 = 0x04;
+
+// Visible Data register
+static const uint8_t SI_REG_VISIBLE_DATA = 0x22;
+// IR Data register
+static const uint8_t SI_REG_IR_DATA = 0x24;
+// Proximity Data register
+static const uint8_t SI_REG_PROX_DATA = 0x26;
+// Auxiliary Data register
+static const uint8_t SI_REG_UV_DATA = 0x2C;
+
+static const uint8_t SI_I2C_PARAM_OFFSET = 0x00;
+
+// ALS VIS ALIGN
+static const uint8_t SI_ALS_VIS_ALIGN = 0x10;
+// ALS IR ALIGN
+static const uint8_t SI_ALS_IR_ALIGN = 0x20;
+
+// ADC Clock 1 : 50 ns
+static const uint8_t SI_001_ADC_CLOCK = 0x00;
+// ADC Clock 7 : 350 ns
+static const uint8_t SI_007_ADC_CLOCK = 0x10;
+// ADC Clock 15 : 750 ns
+static const uint8_t SI_015_ADC_CLOCK = 0x20;
+// ADC Clock 31 : 1.15 us
+static const uint8_t SI_031_ADC_CLOCK = 0x30;
+// ADC Clock 63 : 3.15 us
+static const uint8_t SI_063_ADC_CLOCK = 0x40;
+// ADC Clock 127 : 6.35 us
+static const uint8_t SI_127_ADC_CLOCK = 0xA0;
+// ADC Clock 255 : 12.75 us
+static const uint8_t SI_255_ADC_CLOCK = 0x60;
+// ADC Clock 511 : 25.55 us
+static const uint8_t SI_511_ADC_CLOCK = 0x70;
+
+// Divided ADC Clocks
+static const uint8_t SI_01_DIVIDED_ADC_CLOCK = 0x00;
+static const uint8_t SI_16_DIVIDED_ADC_CLOCK = 0x04;
+static const uint8_t SI_64_DIVIDED_ADC_CLOCK = 0x06;
+
+// Normal signal range
+static const uint8_t SI_NORMAL_SIGNAL_RANGE = 0x00;
+// High signal range
+static const uint8_t SI_HIGH_SIGNAL_RANGE = 0x20;
+
+// ALS IR Adcmux SMALLIR
+static const uint8_t SI_ALS_IR_ADCMUX_SMALLIR = 0x00;
+
+// ALS IR Adcmux Temperature
+static const uint8_t SI_AUX_ADCMUX_TEMPERATURE = 0x65;
+
+// Parameter values
+static const uint8_t SI_PSLED12SEL_PS1NONE = 0x00;
+static const uint8_t SI_PSLED12SEL_PS1LED1 = 0x01;
+static const uint8_t SI_PSLED12SEL_PS1LED2 = 0x02;
+static const uint8_t SI_PSLED12SEL_PS1LED3 = 0x04;
+static const uint8_t SI_PSADCMISC_PSMODE = 0x04;
+static const uint8_t SI_ADCMUX_SMALL_IR_PHOTDIODE = 0x00;
+static const uint8_t SI_ADCMUX_LARGE_IR_PHOTDIODE = 0x03;
+static const uint8_t SI_INTCFG_INTOE = 0x01;
+static const uint8_t SI_INTCFG_INTMODE = 0x02;
+static const uint8_t SI_IRQEN_ALSEVERYSAMPLE = 0x01;
+static const uint8_t SI_IRQEN_PS1EVERYSAMPLE = 0x04;
+static const uint8_t SI_IRQEN_PS2EVERYSAMPLE = 0x08;
+static const uint8_t SI_IRQEN_PS3EVERYSAMPLE = 0x10;
+
+static const uint8_t LOOP_TIMEOUT_MS = 200;
+static const uint8_t ALIGN_LEFT 1;
+static const uint8_t ALIGN_RIGHT - 1;
 
 uint8_t SI11xComponent::read_value_(uint8_t reg) {
   uint8_t data;
@@ -939,7 +1008,6 @@ int16_t SI11xComponent::si114x_get_cal_index(uint8_t *buf) {
   return 0;
 }
 
-#define LOOP_TIMEOUT_MS 200
 /*****************************************************************************
  * @brief
  *   Waits until the Si113x/4x is sleeping before proceeding
@@ -1011,6 +1079,7 @@ int16_t SI11xComponent::find_cal_index(uint8_t *buffer) {
       break;
     case -3:
       index = 1;
+      break;
     default:
       index = -(4 + index);
   }
@@ -1104,5 +1173,5 @@ uint32_t SI11xComponent::irsize_ratio(uint8_t *buffer) {
   return result;
 }
 
-}  // namespace si11x
+}  // namespace si11xx
 }  // namespace esphome
