@@ -368,9 +368,9 @@ void SI11xComponent::read_config_() {
 
   uint32_t i = get_update_interval();
   uint32_t p = (int) (i / (2 * 31.25));
-  uint8_t lsb = p && 0xFF;
-  uint8_t msb = (p >> 8) && 0xFF;
-  ESP_LOGI(TAG, "Intervals i: 0x%d p:%d msb:0x%02X lsb:0x%02X", i, p, msb, lsb);
+  uint8_t lsb = p & 0xFF;
+  uint8_t msb = (p >> 8) & 0xFF;
+  ESP_LOGI(TAG, "Intervals i:%d p:%d msb:0x%02X lsb:0x%02X", i, p, msb, lsb);
 }
 
 bool SI11xComponent::configuration_1132_() {
@@ -400,8 +400,8 @@ bool SI11xComponent::configuration_1132_() {
   // Rate setting. X * 31.25us = Yms
   // Convert half update interval to polling rate
   uint32_t p = (int) (get_update_interval() / (2 * 31.25));
-  uint8_t lsb = p && 0xFF;
-  uint8_t msb = (p >> 8) && 0xFF;
+  uint8_t lsb = p & 0xFF;
+  uint8_t msb = (p >> 8) & 0xFF;
 
   this->set_value_(SI_REG_MEASRATE0, lsb);  // 255 * 31.25uS = 8ms
   this->set_value_(SI_REG_MEASRATE1, msb);  // 255 * 31.25uS = 8ms
