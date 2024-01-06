@@ -15,13 +15,13 @@ namespace si11xx {
 //                                            msb   lsb   align
 //                                            i2c   i2c   ment
 //                                            addr  addr
-#define SIRPD_ADCHI_IRLED (collect(buffer, 0x23, 0x22, 0))
-#define SIRPD_ADCLO_IRLED (collect(buffer, 0x22, 0x25, 1))
-#define SIRPD_ADCLO_WHLED (collect(buffer, 0x24, 0x26, 0))
-#define VISPD_ADCHI_WHLED (collect(buffer, 0x26, 0x27, 1))
-#define VISPD_ADCLO_WHLED (collect(buffer, 0x28, 0x29, 0))
-#define LIRPD_ADCHI_IRLED (collect(buffer, 0x29, 0x2a, 1))
-#define LED_DRV65 (collect(buffer, 0x2b, 0x2c, 0))
+#define SIRPD_ADCHI_IRLED (collect_(buffer, 0x23, 0x22, 0))
+#define SIRPD_ADCLO_IRLED (collect_(buffer, 0x22, 0x25, 1))
+#define SIRPD_ADCLO_WHLED (collect_(buffer, 0x24, 0x26, 0))
+#define VISPD_ADCHI_WHLED (collect_(buffer, 0x26, 0x27, 1))
+#define VISPD_ADCLO_WHLED (collect_(buffer, 0x28, 0x29, 0))
+#define LIRPD_ADCHI_IRLED (collect_(buffer, 0x29, 0x2a, 1))
+#define LED_DRV65 (collect_(buffer, 0x2b, 0x2c, 0))
 
 typedef struct {
   uint32_t vispd_correction; /**< VIS Photodiode Correction        */
@@ -68,7 +68,9 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
  private:
   uint8_t _i2caddr;
   uint8_t device_type_{0};
-  bool proximity_supported_{0};
+  uint8_t device_rev_{0};
+  uint8_t device_seq_{0};
+  bool proximity_supported_{false};
   uint8_t _coefficients[4];
 
   void get_device_();
@@ -77,6 +79,7 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
   uint16_t read_value16_(uint8_t /*reg*/);
   bool set_value_(uint8_t /*reg*/, uint8_t /*mode*/);
   void write_param_(uint8_t /*register_addr*/, uint8_t /*value*/);
+  bool send_command_(uint8_t /*value*/);
 
   bool configuration_1132_();
   bool configuration_1145_();
@@ -96,12 +99,12 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
   uint32_t adcrange_ratio_(uint8_t * /*buffer*/);
   uint32_t irsize_ratio_(uint8_t * /*buffer*/);
   int8_t align_(uint32_t * /*value_p*/, int8_t /*direction*/);
-  void fx20_round(uint32_t *value_p);
-  uint32_t fx20_multiply(struct operand_t *operand_p);
-  uint32_t fx20_divide(struct operand_t *operand_p);
-  uint32_t collect(uint8_t *buffer, uint8_t msb_addr, uint8_t lsb_addr, uint8_t alignment);
-  void shift_left(uint32_t *value_p, int8_t shift);
-  uint32_t decode(uint32_t input);
+  void fx20_round_(uint32_t */*value_p*/);
+  uint32_t fx20_multiply_(struct operand_t */*operand_p*/);
+  uint32_t fx20_divide_(struct operand_t */*operand_p*/);
+  uint32_t collect_(uint8_t */*buffer*/, uint8_t /*msb_addr*/, uint8_t /*lsb_addr*/, uint8_t /*alignment*/);
+  void shift_left_(uint32_t */*value_p*/, int8_t /*shift*/);
+  uint32_t decode_(uint32_t input);
 
   enum ErrorCode {
     NONE = 0,
@@ -110,7 +113,7 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
     VALIDITY_INVALID,
     READ_FAILED,
     WRITE_FAILED,
-    STD_OPMODE_FAILED,
+    COMMAND_FAILED,
   } error_code_{NONE};
 };
 

@@ -14,15 +14,19 @@ namespace si11xx {
 
 static const char *const TAG = "si11xx";
 
-static const uint8_t SI11X_DELAY = 30;
+static const uint8_t SI11X_BOOT_DELAY = 30;
+static const uint8_t SI11X_DELAY = 5;
 
 static const uint8_t SI_REG_PARTID = 0x00;  // Device type register
+static const uint8_t SI_REG_REVID = 0x01;   // Device revision
+static const uint8_t SI_REG_SEQID = 0x02;   // Device seq
 static const uint8_t SI1132_DEVICE = 0x32;  // Device types supported
 static const uint8_t SI1145_DEVICE = 0x45;
 
 // Registers
 static const uint8_t SI_REG_HW_KEY = 0x07;
 static const uint8_t SI_REG_MEASRATE0 = 0x08;
+static const uint8_t SI_REG_MEASRATE1 = 0x09;
 static const uint8_t SI_REG_INTCFG = 0x03;
 static const uint8_t SI_REG_IRQEN = 0x04;
 static const uint8_t SI_REG_PSLED21 = 0x0F;
@@ -37,8 +41,8 @@ static const uint8_t SI_REG_UCOEFF3 = 0x16;
 // Commands
 static const uint8_t SI_REG_PARAMWR = 0x17;
 static const uint8_t SI_REG_COMMAND = 0x18;
-
 static const uint8_t SI_REG_RESPONSE = 0x20;
+
 static const uint8_t SI1145_REG_IRQSTAT = 0x21;
 static const uint8_t SI1145_REG_IRQSTAT_ALS = 0x01;
 static const uint8_t REG_PS1_DATA0 = 0x26;
@@ -84,9 +88,9 @@ static const uint8_t SI_CHIPLIST_EN_UV = 0x80;
 static const uint8_t SI_CHIPLIST_EN_AUX = 0x40;
 static const uint8_t SI_CHIPLIST_EN_ALS_IR = 0x20;
 static const uint8_t SI_CHIPLIST_EN_ALS_VIS = 0x10;
-static const uint8_t SI_CHIPLIST_EN_PS1 = 0x01;
-static const uint8_t SI_CHIPLIST_EN_PS2 = 0x02;
 static const uint8_t SI_CHIPLIST_EN_PS3 = 0x04;
+static const uint8_t SI_CHIPLIST_EN_PS2 = 0x02;
+static const uint8_t SI_CHIPLIST_EN_PS1 = 0x01;
 
 // Visible Data register
 static const uint8_t SI_REG_VISIBLE_DATA = 0x22;
@@ -180,7 +184,6 @@ uint16_t SI11xComponent::read_value16_(uint8_t reg) {
 
 // Set any register value and handle errors
 bool SI11xComponent::set_value_(uint8_t reg, uint8_t mode) {
-  // set mode to reset
   if (!this->write_byte(reg, mode)) {
     this->error_code_ = WRITE_FAILED;
     this->mark_failed();
@@ -193,16 +196,40 @@ bool SI11xComponent::set_value_(uint8_t reg, uint8_t mode) {
 
 void SI11xComponent::write_param_(uint8_t register_addr, uint8_t value) {
   this->set_value_(SI_REG_PARAMWR, value);
-  this->set_value_(SI_REG_COMMAND, register_addr | SI_PARAM_SET);
+  this->send_command_(register_addr | SI_PARAM_SET);
+}
+
+// Special command handlint protocol
+// Write 0x00 to command register, read and verify response
+// write command, read response regeister is non-zero
+bool SI11xComponent::send_command_(uint8_t value) {
+  // set mode to reset
+  if (this->write_byte(SI_REG_COMMAND, 0x00)) {
+    uint8_t data;
+    if (this->read_byte(SI_REG_RESPONSE, &data) && data == 0x00) {
+      if (this->write_byte(SI_REG_COMMAND, value)) {
+        if (this->read_byte(SI_REG_RESPONSE, &data) && data != 0x00) {
+          // successful
+          delay(SI11X_DELAY);
+          return true;
+        }
+      }
+    }
+  }
+  this->error_code_ = COMMAND_FAILED;
+  this->mark_failed();
+  return false;
 }
 
 /**
  @brief software reset Si11xx
 */
 void SI11xComponent::reset_() {
-  delay(SI11X_DELAY);  // minimum startup time
+  delay(SI11X_BOOT_DELAY);  // minimum startup time
   this->set_value_(SI_REG_COMMAND, SI_RESET);
+  delay(SI11X_DELAY);
   this->set_value_(SI_REG_HW_KEY, SI_HW_KEY_DEFAULT);
+  delay(SI11X_DELAY);
 }
 
 void SI11xComponent::setup() {
@@ -294,7 +321,7 @@ void SI11xComponent::dump_config() {
   // ESP_LOGI(TAG, "Firmware Version: %d.%d.%d", this->firmware_ver_major_, this->firmware_ver_minor_,
   //          this->firmware_ver_build_);
   LOG_I2C_DEVICE(this);
-  ESP_LOGI(TAG, "Device ID: 0x%x", this->device_type_);
+  ESP_LOGI(TAG, "Firmware Version: 0x%x %d.%d", this->device_type_, this->device_rev_, this->device_seq_);
 
   LOG_SENSOR("  ", "Light Sensor:", this->light_sensor_);
   LOG_SENSOR("  ", "ALS Sensor:", this->ir_sensor_);
@@ -311,7 +338,17 @@ void SI11xComponent::dump_config() {
   // }
 }
 
-void SI11xComponent::get_device_() { this->device_type_ = this->read_value_(SI_REG_PARTID); }
+void SI11xComponent::get_device_() {
+  this->device_type_ = this->read_value_(SI_REG_PARTID);
+  this->device_seq_ = this->read_value_(SI_REG_SEQID);
+  this->device_rev_ = this->read_value_(SI_REG_REVID);
+
+  // fix measure rate registers if seq = 0x01. Code error in specification documents
+  if (this->device_seq_ == 1) {
+    SI_REG_MEASRATE0 = 0x0A;
+    SI_REG_MEASRATE1 = 0x08;
+  }
+}
 
 bool SI11xComponent::configuration_1132_() {
   // enable UVindex measurement coefficients!
@@ -339,9 +376,10 @@ bool SI11xComponent::configuration_1132_() {
 
   // Rate setting
   this->set_value_(SI_REG_MEASRATE0, 0xFF);  // 255 * 31.25uS = 8ms
+  this->set_value_(SI_REG_MEASRATE1, 0x00);  // 255 * 31.25uS = 8ms
 
   // Set auto run
-  this->set_value_(SI_REG_COMMAND, ALS_AUTO);
+  this->send_command_(ALS_AUTO);
   delay(10);
 
   // device capable and external IR attached
@@ -374,12 +412,13 @@ bool SI11xComponent::configuration_1145_() {
 
   // Rate setting
   this->set_value_(SI_REG_MEASRATE0, 0xFF);  // 255 * 31.25uS = 8ms
+  this->set_value_(SI_REG_MEASRATE1, 0x00);  // 255 * 31.25uS = 8ms
 
   // Set auto run
   if (this->ProximityLedAttached)
-    this->set_value_(SI_REG_COMMAND, PSALS_AUTO);
+    this->send_command_(PSALS_AUTO);
   else
-    this->set_value_(SI_REG_COMMAND, ALS_AUTO);
+    this->send_command_(ALS_AUTO);
   delay(10);
 
   // device capable if external IR attached
@@ -572,7 +611,7 @@ struct operand_t {
  *   Converts the 12-bit factory test value from the Si114x and returns the
  *   fixed-point representation of this 12-bit factory test value.
  ******************************************************************************/
-uint32_t SI11xComponent::decode(uint32_t input) {
+uint32_t SI11xComponent::decode_(uint32_t input) {
   int32_t exponent, exponent_bias9;
   uint32_t mantissa;
 
@@ -595,7 +634,7 @@ uint32_t SI11xComponent::decode(uint32_t input) {
  *   shift value will shift the value right. Value pointed will be
  *   overwritten.
  ******************************************************************************/
-void SI11xComponent::shift_left(uint32_t *value_p, int8_t shift) {
+void SI11xComponent::shift_left_(uint32_t *value_p, int8_t shift) {
   if (shift > 0)
     *value_p = *value_p << shift;
   else
@@ -608,7 +647,7 @@ void SI11xComponent::shift_left(uint32_t *value_p, int8_t shift) {
  *   This function takes the 12 bytes from the Si114x, then converts it
  *   to a fixed point representation, with the help of the decode() function
  ******************************************************************************/
-uint32_t SI11xComponent::collect(uint8_t *buffer, uint8_t msb_addr, uint8_t lsb_addr, uint8_t alignment) {
+uint32_t SI11xComponent::collect_(uint8_t *buffer, uint8_t msb_addr, uint8_t lsb_addr, uint8_t alignment) {
   uint16_t value;
   uint8_t msb_ind = msb_addr - 0x22;
   uint8_t lsb_ind = lsb_addr - 0x22;
@@ -624,13 +663,13 @@ uint32_t SI11xComponent::collect(uint8_t *buffer, uint8_t msb_addr, uint8_t lsb_
 
   if ((value == 0x0fff) || (value == 0x0000))
     return FX20_BAD_VALUE;
-  return decode(value);
+  return decode_(value);
 }
 /*****************************************************************************
  * @brief
  *   Returns a fixed-point (20-bit fraction) after dividing op1/op2
  ******************************************************************************/
-uint32_t SI11xComponent::fx20_divide(struct operand_t *operand_p) {
+uint32_t SI11xComponent::fx20_divide_(struct operand_t *operand_p) {
   int8_t numerator_sh = 0, denominator_sh = 0;
   uint32_t result;
   uint32_t *numerator_p;
@@ -645,13 +684,13 @@ uint32_t SI11xComponent::fx20_divide(struct operand_t *operand_p) {
   if ((*numerator_p == FX20_BAD_VALUE) || (*denominator_p == FX20_BAD_VALUE) || (*denominator_p == 0))
     return FX20_BAD_VALUE;
 
-  fx20_round(numerator_p);
-  fx20_round(denominator_p);
+  fx20_round_(numerator_p);
+  fx20_round_(denominator_p);
   numerator_sh = align_(numerator_p, ALIGN_LEFT);
   denominator_sh = align_(denominator_p, ALIGN_RIGHT);
 
   result = *numerator_p / ((uint16_t) (*denominator_p));
-  shift_left(&result, 20 - numerator_sh - denominator_sh);
+  shift_left_(&result, 20 - numerator_sh - denominator_sh);
 
   return result;
 }
@@ -659,7 +698,7 @@ uint32_t SI11xComponent::fx20_divide(struct operand_t *operand_p) {
  * @brief
  *   Returns a fixed-point (20-bit fraction) after multiplying op1*op2
  ******************************************************************************/
-uint32_t SI11xComponent::fx20_multiply(struct operand_t *operand_p) {
+uint32_t SI11xComponent::fx20_multiply_(struct operand_t *operand_p) {
   uint32_t result;
   int8_t val1_sh, val2_sh;
   uint32_t *val1_p;
@@ -671,14 +710,14 @@ uint32_t SI11xComponent::fx20_multiply(struct operand_t *operand_p) {
   val1_p = &(operand_p->op1);
   val2_p = &(operand_p->op2);
 
-  fx20_round(val1_p);
-  fx20_round(val2_p);
+  fx20_round_(val1_p);
+  fx20_round_(val2_p);
 
   val1_sh = align_(val1_p, ALIGN_RIGHT);
   val2_sh = align_(val2_p, ALIGN_RIGHT);
 
   result = (uint32_t) (((uint32_t) (*val1_p)) * ((uint32_t) (*val2_p)));
-  shift_left(&result, -20 + val1_sh + val2_sh);
+  shift_left_(&result, -20 + val1_sh + val2_sh);
 
   return result;
 }
@@ -686,7 +725,7 @@ uint32_t SI11xComponent::fx20_multiply(struct operand_t *operand_p) {
  * @brief
  *   Rounds the uint32_t value pointed by value_p to 16 bits.
  ******************************************************************************/
-void SI11xComponent::fx20_round(uint32_t *value_p) {
+void SI11xComponent::fx20_round_(uint32_t *value_p) {
   int8_t shift;
   uint32_t mask1 = 0xffff8000;
   uint32_t mask2 = 0xffff0000;
@@ -701,7 +740,7 @@ void SI11xComponent::fx20_round(uint32_t *value_p) {
     *value_p &= mask2;
   }
 
-  shift_left(value_p, -shift);
+  shift_left_(value_p, -shift);
 }
 /*****************************************************************************
  * @brief
@@ -741,7 +780,7 @@ int8_t SI11xComponent::align_(uint32_t *value_p, int8_t direction) {
     if (*value_p & mask)
       break;
     shift++;
-    shift_left(value_p, local_shift);
+    shift_left_(value_p, local_shift);
   }
   return shift;
 }
@@ -832,7 +871,7 @@ int16_t SI11xComponent::si114x_get_calibration_(SI114X_CAL_S *si114x_cal, uint8_
 
   // Check to make sure that the device is ready to receive commands
   do {
-    retval = this->set_value_(SI_REG_COMMAND, SI_NOP);
+    retval = this->send_command_(SI_NOP);
     // retval = Si114xNop( si114x_handle );
     if (retval != 0) {
       retval = -2;
@@ -847,7 +886,7 @@ int16_t SI11xComponent::si114x_get_calibration_(SI114X_CAL_S *si114x_cal, uint8_
   } while (response != 0);
 
   // Request for the calibration data
-  retval = this->set_value_(SI_REG_COMMAND, 0x12);
+  retval = this->send_command_(0x12);
   // retval = Si114xWriteToRegister( si114x_handle, REG_COMMAND, 0x12 );
   wait_until_sleep_();
 
@@ -866,7 +905,7 @@ int16_t SI11xComponent::si114x_get_calibration_(SI114X_CAL_S *si114x_cal, uint8_
       // leading to command error. So, rather than returning an
       // error, handle the error by Nop and set ratios to -1.0
       // and return normally.
-      this->set_value_(SI_REG_COMMAND, SI_NOP);
+      this->send_command_(SI_NOP);
       // Si114xNop( si114x_handle );
       retval = -3;
       goto error_exit;
@@ -977,13 +1016,13 @@ int16_t SI11xComponent::si114x_set_ucoef_(uint8_t *input_ucoef, SI114X_CAL_S *si
 
   op.op1 = ref_ucoef[0] + ((ref_ucoef[1]) << 8);
   op.op2 = vc;
-  long_temp = fx20_multiply(&op);
+  long_temp = fx20_multiply_(&op);
   _coefficients[0] = (long_temp & 0x00ff);
   _coefficients[1] = (long_temp & 0xff00) >> 8;
 
   op.op1 = ref_ucoef[2] + (ref_ucoef[3] << 8);
   op.op2 = ic;
-  long_temp = fx20_multiply(&op);
+  long_temp = fx20_multiply_(&op);
   _coefficients[2] = (long_temp & 0x00ff);
   _coefficients[3] = (long_temp & 0xff00) >> 8;
 
@@ -1010,7 +1049,7 @@ int16_t SI11xComponent::si114x_get_cal_index_(uint8_t *buf) {
 
   // Check to make sure that the device is ready to receive commands
   do {
-    retval = this->set_value_(SI_REG_COMMAND, SI_NOP);
+    retval = this->send_command_(SI_NOP);
     // retval = Si114xNop( si114x_handle );
     if (retval != 0)
       return -1;
@@ -1023,7 +1062,7 @@ int16_t SI11xComponent::si114x_get_cal_index_(uint8_t *buf) {
   } while (response != 0);
 
   // Retrieve the index
-  retval = this->set_value_(SI_REG_COMMAND, 0x11);
+  retval = this->send_command_(0x11);
   // retval = Si114xWriteToRegister( si114x_handle, REG_COMMAND, 0x11 );
   wait_until_sleep_();
 
@@ -1049,7 +1088,6 @@ int16_t SI11xComponent::wait_until_sleep_() {
   // or if an i2c error occurs
   while (count < LOOP_TIMEOUT_MS) {
     response = this->read_value_(REG_CHIP_STAT);
-    // response = Si114xReadFromRegister(si114x_handle, REG_CHIP_STAT);
     if (response == 1)
       break;
     if (response < 0)
@@ -1078,7 +1116,7 @@ uint32_t SI11xComponent::ledi_ratio_(uint8_t *buffer) {
   // op.op1 = LED_DRV65_REF; op.op2 = LED_DRV65;
   op.op1 = calref[index].ledi_65ma;
   op.op2 = LED_DRV65;
-  result = fx20_divide(&op);
+  result = fx20_divide_(&op);
 
   if (result == FX20_BAD_VALUE)
     result = FX20_ONE;
@@ -1135,7 +1173,7 @@ uint32_t SI11xComponent::vispd_correction_(uint8_t *buffer) {
 
   op.op1 = calref[index].vispd_adclo_whled;
   op.op2 = VISPD_ADCLO_WHLED;
-  result = fx20_divide(&op);
+  result = fx20_divide_(&op);
 
   if (result == FX20_BAD_VALUE)
     result = FX20_ONE;
@@ -1157,7 +1195,7 @@ uint32_t SI11xComponent::irpd_correction_(uint8_t *buffer) {
   // op.op1 = SIRPD_ADCLO_IRLED_REF; op.op2 = SIRPD_ADCLO_IRLED;
   op.op1 = calref[index].sirpd_adclo_irled;
   op.op2 = SIRPD_ADCLO_IRLED;
-  result = fx20_divide(&op);
+  result = fx20_divide_(&op);
 
   if (result == FX20_BAD_VALUE)
     result = FX20_ONE;
@@ -1176,7 +1214,7 @@ uint32_t SI11xComponent::adcrange_ratio_(uint8_t *buffer) {
 
   op.op1 = SIRPD_ADCLO_IRLED;
   op.op2 = SIRPD_ADCHI_IRLED;
-  result = fx20_divide(&op);
+  result = fx20_divide_(&op);
 
   if (result == FX20_BAD_VALUE)
     result = FLT_TO_FX20(14.5);
@@ -1195,7 +1233,7 @@ uint32_t SI11xComponent::irsize_ratio_(uint8_t *buffer) {
   op.op1 = LIRPD_ADCHI_IRLED;
   op.op2 = SIRPD_ADCHI_IRLED;
 
-  result = fx20_divide(&op);
+  result = fx20_divide_(&op);
 
   if (result == FX20_BAD_VALUE)
     result = FLT_TO_FX20(6.0);
