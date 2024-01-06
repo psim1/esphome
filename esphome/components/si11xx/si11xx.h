@@ -91,7 +91,7 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
   int16_t si114x_get_calibration_(SI114X_CAL_S * /*si114x_cal*/, uint8_t /*security*/);
   int16_t si114x_set_ucoef_(uint8_t * /*input_ucoef*/, SI114X_CAL_S * /*si114x_cal*/);
   int16_t si114x_get_cal_index_(uint8_t * /*buffer*/);
-  int16_t wait_until_sleep_(void);
+  void wait_until_sleep_();
   int16_t find_cal_index_(uint8_t * /*buffer*/);
   uint32_t ledi_ratio_(uint8_t * /*buffer*/);
   uint32_t vispd_correction_(uint8_t * /*buffer*/);

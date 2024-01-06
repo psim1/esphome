@@ -203,19 +203,24 @@ void SI11xComponent::write_param_(uint8_t register_addr, uint8_t value) {
 // Write 0x00 to command register, read and verify response
 // write command, read response regeister is non-zero
 bool SI11xComponent::send_command_(uint8_t value) {
-  // set mode to reset
-  if (this->set_value_(SI_REG_COMMAND, 0x00)) {
-    uint8_t data = this->read_value_(SI_REG_RESPONSE);
-    if (data == 0x00) {
-      if (this->set_value_(SI_REG_COMMAND, value)) {
-        data = this->read_value_(SI_REG_RESPONSE);
-        if (data != 0x00) {
-          // successful
-          return true;
-        }
-      }
+  uint8_t response;
+  do {
+    this->set_value_(SI_REG_COMMAND, SI_NOP);
+    response = this->read_value_(SI_REG_RESPONSE);
+    if (response != 0) {
+      delay(1);
+    }
+  } while (response != 0);
+
+  if (this->set_value_(SI_REG_COMMAND, value)) {
+    wait_until_sleep_();
+    response = this->read_value_(SI_REG_RESPONSE);
+    if (data != 0) {
+      // successful
+      return true;
     }
   }
+
   this->error_code_ = COMMAND_FAILED;
   this->mark_failed();
   return false;
@@ -1083,8 +1088,8 @@ int16_t SI11xComponent::si114x_get_cal_index_(uint8_t *buf) {
  * @brief
  *   Waits until the Si113x/4x is sleeping before proceeding
  ******************************************************************************/
-int16_t SI11xComponent::wait_until_sleep_() {
-  int8_t response = -1;
+void SI11xComponent::wait_until_sleep_() {
+  //  int8_t response = -1;
   uint8_t count = 0;
   // This loops until the Si114x is known to be in its sleep state
   // or if an i2c error occurs
@@ -1093,11 +1098,11 @@ int16_t SI11xComponent::wait_until_sleep_() {
     if (response == 1)
       break;
     if (response < 0)
-      return (int16_t) response;
+      return;  // (int16_t) response;
     count++;
     delay(1);
   }
-  return 0;
+  return;
 }
 
 /*****************************************************************************
