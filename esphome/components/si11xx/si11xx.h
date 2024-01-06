@@ -42,10 +42,7 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
 
   uint16_t readUV(void);
   float readUVIndex(void);
-  char *readUVScore(float);
-
   uint16_t readProximity(void);
-
   uint16_t readIR(void);
   uint16_t readVisible(void);
 
@@ -58,13 +55,13 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
   uint8_t CoEfficientValues[4];
 
   void set_light_sensor(sensor::Sensor *light_sensor) { this->light_sensor_ = light_sensor; }
-  void set_als_sensor(sensor::Sensor *als_sensor) { this->als_sensor_ = als_sensor; }
+  void set_ir_sensor(sensor::Sensor *ir_sensor) { this->ir_sensor_ = ir_sensor; }
   void set_uvi_sensor(sensor::Sensor *uvi_sensor) { this->uvi_sensor_ = uvi_sensor; }
   void set_uv_sensor(sensor::Sensor *uv_sensor) { this->uv_sensor_ = uv_sensor; }
 
  protected:
   sensor::Sensor *light_sensor_{nullptr};
-  sensor::Sensor *als_sensor_{nullptr};
+  sensor::Sensor *ir_sensor_{nullptr};
   sensor::Sensor *uvi_sensor_{nullptr};
   sensor::Sensor *uv_sensor_{nullptr};
 

@@ -18,7 +18,7 @@ si11xx_ns = cg.esphome_ns.namespace("si11xx")
 
 SI11xComponent = si11xx_ns.class_("SI11xComponent", cg.PollingComponent, i2c.I2CDevice)
 
-CONF_AMBIENT_LIGHT = "ambient_light"
+CONF_INFRA_RED = "infra_red"
 CONF_UV_INDEX = "uv_index"
 CONF_UV = "uv"
 CONF_WINDOW_CORRECTION_FACTOR = "window_correction_factor"
@@ -55,7 +55,7 @@ CONFIG_SCHEMA = cv.All(
                 accuracy_decimals=1,
                 device_class=DEVICE_CLASS_ILLUMINANCE,
             ),
-            cv.Optional(CONF_AMBIENT_LIGHT): sensor.sensor_schema(
+            cv.Optional(CONF_INFRA_RED): sensor.sensor_schema(
                 unit_of_measurement=UNIT_COUNTS,
                 icon=ICON_BRIGHTNESS_5,
                 accuracy_decimals=1,
@@ -82,12 +82,12 @@ CONFIG_SCHEMA = cv.All(
     )
     .extend(cv.polling_component_schema("60s"))
     .extend(i2c.i2c_device_schema(0x60)),
-    cv.has_at_least_one_key(CONF_LIGHT, CONF_AMBIENT_LIGHT, CONF_UV_INDEX, CONF_UV),
+    cv.has_at_least_one_key(CONF_LIGHT, CONF_INFRA_RED, CONF_UV_INDEX, CONF_UV),
 )
 
 TYPES = {
     CONF_LIGHT: "set_light_sensor",
-    CONF_AMBIENT_LIGHT: "set_als_sensor",
+    CONF_INFRA_RED: "set_ir_sensor",
     CONF_UV_INDEX: "set_uvi_sensor",
     CONF_UV: "set_uv_sensor",
 }

@@ -223,6 +223,36 @@ void SI11xComponent::setup() {
 
 void SI11xComponent::update() {
   // loop return sensor values
+
+  // uv_sensor_ and uvi_sensor_
+  uint16_t data_uv = this->readUV();
+  if (this->status_has_error()) {
+    return;
+  }
+  if (this->uv_sensor_ != nullptr) {
+    this->uv_sensor_->publish_state(data_uv);
+  }
+  if (this->uvi_sensor_ != nullptr) {
+    this->uvi_sensor_->publish_state(data_uv / 100.0);
+  }
+
+  // ir_sensor_
+  uint16_t data_ir = this->readIR();
+  if (this->status_has_error()) {
+    return;
+  }
+  if (this->ir_sensor_ != nullptr) {
+    this->ir_sensor_->publish_state(data_ir);
+  }
+
+  // light_sensor_
+  uint16_t data_light = readVisible();
+  if (this->status_has_error()) {
+    return;
+  }
+  if (this->light_sensor_ != nullptr) {
+    this->light_sensor_->publish_state(data_light);
+  }
 }
 
 void SI11xComponent::dump_config() {
@@ -457,8 +487,7 @@ float SI11xComponent::readUVIndex() {
  @param [out] ir data (lux)
 */
 uint16_t SI11xComponent::readIR() {
-  uint16_t ir;
-  ir = readI2c_16(SI_REG_IR_DATA);
+  uint16_t ir = read_value16_(SI_REG_IR_DATA);
   ir = ((ir - 250) / 2.44) * 14.5;
   return ir;
 }
@@ -468,8 +497,7 @@ uint16_t SI11xComponent::readIR() {
  @param [out] Visible data (lux)
 */
 uint16_t SI11xComponent::readVisible() {
-  uint16_t visible;
-  visible = readI2c_16(SI_REG_VISIBLE_DATA);
+  uint16_t visible = read_value16_(SI_REG_VISIBLE_DATA);
   visible = ((visible - 256) / 0.282) * 14.5;
   return visible;
 }
