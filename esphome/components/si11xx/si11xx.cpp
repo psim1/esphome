@@ -20,6 +20,8 @@ static const uint8_t SI11X_DELAY = 2;
 static const uint8_t SI_REG_PARTID = 0x00;  // Device type register
 static const uint8_t SI_REG_REVID = 0x01;   // Device revision
 static const uint8_t SI_REG_SEQID = 0x02;   // Device seq
+static const uint8_t SI_INT_CFG = 0x03;     // INT Output Enable
+static const uint8_t SI_IRQ_ENABLE = 0x04;  // ALS Interrupt Enable
 static const uint8_t SI1132_DEVICE = 0x32;  // Device types supported
 static const uint8_t SI1145_DEVICE = 0x45;
 
@@ -242,6 +244,12 @@ void SI11xComponent::reset_() {
   delay(SI11X_DELAY);
   this->set_value_(SI_REG_HW_KEY, SI_HW_KEY_DEFAULT);
   delay(SI11X_DELAY);
+
+  // clear interrupts
+  this->set_value_(SI_INT_CFG, 0x00);
+  delay(SI11X_DELAY);
+  this->set_value_(SI_IRQ_ENABLE, 0x00);
+  delay(SI11X_DELAY);
 }
 
 void SI11xComponent::setup() {
@@ -329,20 +337,16 @@ void SI11xComponent::dump_config() {
       ESP_LOGD(TAG, "Setup successful");
       break;
   }
-  // this->read_config_();
 
   LOG_I2C_DEVICE(this);
-  ESP_LOGI(TAG, "Type: 0x%x Rev: %d Seq: %d", this->device_type_, this->device_rev_, this->device_seq_);
 
   LOG_SENSOR("  ", "Light Sensor:", this->light_sensor_);
   LOG_SENSOR("  ", "IR Sensor:", this->ir_sensor_);
   LOG_SENSOR("  ", "UVI Sensor:", this->uvi_sensor_);
   LOG_SENSOR("  ", "UV Sensor:", this->uv_sensor_);
 
-  ESP_LOGI(TAG, "Measure rate: 0x%x 0x%x", this->read_value_(SI_REG_MEASRATE0), this->read_value_(SI_REG_MEASRATE1));
-
   LOG_UPDATE_INTERVAL(this);
-
+  this->read_config_();
 }
 
 void SI11xComponent::get_device_() {
@@ -355,6 +359,12 @@ void SI11xComponent::get_device_() {
     SI_REG_MEASRATE0 = 0x0A;
     SI_REG_MEASRATE1 = 0x08;
   }
+}
+
+// check config value
+void SI11xComponent::read_config_() {
+  ESP_LOGI(TAG, "Type: 0x%x Rev: %d Seq: %d", this->device_type_, this->device_rev_, this->device_seq_);
+  ESP_LOGI(TAG, "Measure rate: 0x%02X%02X", this->read_value_(SI_REG_MEASRATE1), this->read_value_(SI_REG_MEASRATE0));
 }
 
 bool SI11xComponent::configuration_1132_() {
@@ -383,7 +393,7 @@ bool SI11xComponent::configuration_1132_() {
 
   // Rate setting. X * 31.25us = Yms
   // Convert half update interval to polling rate
-  uint32_t p = get_update_interval() / 2 / 31.25;
+  uint32_t p = (int) (get_update_interval() / (2 * 31.25));
   uint8_t lsb = p && 0xFF;
   uint8_t msb = (p >> 8) && 0xFF;
 

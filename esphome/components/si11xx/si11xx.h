@@ -83,6 +83,7 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
 
   bool configuration_1132_();
   bool configuration_1145_();
+  void read_config_();
   void set_ambient_light_params_();
   void set_infrared_params_();
   void set_proximity_params_();
