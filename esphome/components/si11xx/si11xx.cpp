@@ -897,7 +897,7 @@ int16_t SI11xComponent::si114x_get_calibration_(SI114X_CAL_S *si114x_cal, uint8_
   int16_t retval = 0;
   uint8_t response;
 
-  if (si114x_cal == NULLPTR) {
+  if (si114x_cal == nullptr) {
     retval = -4;
     goto error_exit;
   }
@@ -1100,7 +1100,7 @@ int16_t SI11xComponent::si114x_get_cal_index_(uint8_t *buf) {
   int16_t retval;
   uint8_t response;
 
-  if (buf == NULLPTR)
+  if (buf == nullptr)
     return -1;
 
   // Check to make sure that the device is ready to receive commands
