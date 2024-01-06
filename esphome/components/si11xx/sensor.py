@@ -16,9 +16,7 @@ DEPENDENCIES = ["i2c"]
 
 si11xx_ns = cg.esphome_ns.namespace("si11xx")
 
-SI11xComponent = si11xx_ns.class_(
-    "SI11xComponent", cg.PollingComponent, i2c.I2CDevice
-)
+SI11xComponent = si11xx_ns.class_("SI11xComponent", cg.PollingComponent, i2c.I2CDevice)
 
 CONF_AMBIENT_LIGHT = "ambient_light"
 CONF_UV_INDEX = "uv_index"
@@ -28,7 +26,7 @@ CONF_WINDOW_CORRECTION_FACTOR = "window_correction_factor"
 UNIT_COUNTS = "#"
 UNIT_UVI = "UVI"
 
-#SI11XGAIN = si11xx_ns.enum("LTR390GAIN")
+# SI11XGAIN = si11xx_ns.enum("LTR390GAIN")
 # GAIN_OPTIONS = {
 #    "X1": SI11XGAIN.LTR390_GAIN_1,
 #    "X3": SI11XGAIN.LTR390_GAIN_3,
@@ -37,7 +35,7 @@ UNIT_UVI = "UVI"
 #    "X18": SI11XGAIN.LTR390_GAIN_18,
 # }
 
-#SI11XRESOLUTION = si11xx_ns.enum("LTR390RESOLUTION")
+# SI11XRESOLUTION = si11xx_ns.enum("LTR390RESOLUTION")
 # RES_OPTIONS = {
 #    20: SI11XRESOLUTION.LTR390_RESOLUTION_20BIT,
 #    19: SI11XRESOLUTION.LTR390_RESOLUTION_19BIT,

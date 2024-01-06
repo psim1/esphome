@@ -13,7 +13,6 @@ namespace esphome {
 namespace si11xx {
 
 static const char *const TAG = "si11xx";
-static const uint8_t I2C_ADDRESS = 0x60;  // SI11xx Address
 
 static const uint8_t SI11X_DELAY = 30;
 
@@ -210,10 +209,13 @@ void SI11xComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up SI11xx...");
   this->get_device_();
   this->reset_();
-  if (this->_device_type_ == SI1132_DEVICE)
+  if (this->device_type_ == SI1132_DEVICE) {
     this->configuration_1132_();
-  else if (this->_device_type_ == SI1145_DEVICE)
+    return;
+  } else if (this->device_type_ == SI1145_DEVICE) {
     this->configuration_1145_();
+    return;
+  }
 
   this->error_code_ = INVALID_ID;
   this->mark_failed();
@@ -253,10 +255,14 @@ void SI11xComponent::dump_config() {
   // ESP_LOGI(TAG, "Firmware Version: %d.%d.%d", this->firmware_ver_major_, this->firmware_ver_minor_,
   //          this->firmware_ver_build_);
   LOG_I2C_DEVICE(this);
+  ESP_LOGI(TAG, "Device ID: 0x%x", this->device_type_);
+
+  LOG_SENSOR("  ", "Light Sensor:", this->light_sensor_);
+  LOG_SENSOR("  ", "ALS Sensor:", this->als_sensor_);
+  LOG_SENSOR("  ", "UVI Sensor:", this->uvi_sensor_);
+  LOG_SENSOR("  ", "UV Sensor:", this->uv_sensor_);
+
   LOG_UPDATE_INTERVAL(this);
-  // LOG_SENSOR("  ", "CO2 Sensor:", this->co2_);
-  // LOG_SENSOR("  ", "TVOC Sensor:", this->tvoc_);
-  // LOG_SENSOR("  ", "AQI Sensor:", this->aqi_);
 
   // if (this->temperature_ != nullptr && this->humidity_ != nullptr) {
   //   LOG_SENSOR("  ", "  Temperature Compensation:", this->temperature_);
@@ -266,7 +272,7 @@ void SI11xComponent::dump_config() {
   // }
 }
 
-void SI11xComponent::get_device_() { this->_device_type_ = this->read_value_(SI_REG_PARTID); }
+void SI11xComponent::get_device_() { this->device_type_ = this->read_value_(SI_REG_PARTID); }
 
 bool SI11xComponent::configuration_1132_() {
   // enable UVindex measurement coefficients!

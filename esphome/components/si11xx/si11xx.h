@@ -70,7 +70,7 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
 
  private:
   uint8_t _i2caddr;
-  uint8_t _device_type_{0};
+  uint8_t device_type_{0};
   bool proximity_supported_{0};
   uint8_t _coefficients[4];
 
