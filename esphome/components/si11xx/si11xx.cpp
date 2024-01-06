@@ -227,18 +227,23 @@ void SI11xComponent::update() {
   // uv_sensor_ and uvi_sensor_
   uint16_t data_uv = this->readUV();
   if (this->status_has_error()) {
+    ESP_LOGW(TAG, "Error reading UV data");
+    this->status_set_warning();
     return;
   }
   if (this->uv_sensor_ != nullptr) {
     this->uv_sensor_->publish_state(data_uv);
   }
   if (this->uvi_sensor_ != nullptr) {
-    this->uvi_sensor_->publish_state(data_uv / 100.0);
+    float data_uvi = data_uv / 100.0;
+    this->uvi_sensor_->publish_state(data_uvi);
   }
 
   // ir_sensor_
   uint16_t data_ir = this->readIR();
   if (this->status_has_error()) {
+    ESP_LOGW(TAG, "Error reading IR data");
+    this->status_set_warning();
     return;
   }
   if (this->ir_sensor_ != nullptr) {
@@ -248,11 +253,15 @@ void SI11xComponent::update() {
   // light_sensor_
   uint16_t data_light = readVisible();
   if (this->status_has_error()) {
+    ESP_LOGW(TAG, "Error reading Visible light data");
+    this->status_set_warning();
     return;
   }
   if (this->light_sensor_ != nullptr) {
     this->light_sensor_->publish_state(data_light);
   }
+
+  this->status_clear_warning();
 }
 
 void SI11xComponent::dump_config() {
@@ -288,7 +297,7 @@ void SI11xComponent::dump_config() {
   ESP_LOGI(TAG, "Device ID: 0x%x", this->device_type_);
 
   LOG_SENSOR("  ", "Light Sensor:", this->light_sensor_);
-  LOG_SENSOR("  ", "ALS Sensor:", this->als_sensor_);
+  LOG_SENSOR("  ", "ALS Sensor:", this->ir_sensor_);
   LOG_SENSOR("  ", "UVI Sensor:", this->uvi_sensor_);
   LOG_SENSOR("  ", "UV Sensor:", this->uv_sensor_);
 
@@ -306,11 +315,11 @@ void SI11xComponent::get_device_() { this->device_type_ = this->read_value_(SI_R
 
 bool SI11xComponent::configuration_1132_() {
   // enable UVindex measurement coefficients!
-  this->set_calibrated_coefficients_();
-  // writeI2c(SI_REG_UCOEFF0, 0x7B);
-  // writeI2c(SI_REG_UCOEFF1, 0x6B);
-  // writeI2c(SI_REG_UCOEFF2, 0x01);
-  // writeI2c(SI_REG_UCOEFF3, 0x00);
+  // this->set_calibrated_coefficients_();
+  this->write_param_(SI_REG_UCOEFF0, 0x7B);
+  this->write_param_(SI_REG_UCOEFF1, 0x6B);
+  this->write_param_(SI_REG_UCOEFF2, 0x01);
+  this->write_param_(SI_REG_UCOEFF3, 0x00);
 
   // SET PARAM_WR(Chiplist)
   this->write_param_(SI_CHIPLIST_PARAM_OFFSET,
@@ -374,7 +383,7 @@ bool SI11xComponent::configuration_1145_() {
   delay(10);
 
   // device capable if external IR attached
-  this->proximity_supported_ = true;
+  this->proximity_supported_ = this->ProximityLedAttached;
 
   return true;
 }
@@ -383,7 +392,7 @@ void SI11xComponent::set_calibrated_coefficients_() {
   SI114X_CAL_S si114x_cal;
 
   /* UV Coefficients */
-  this->si114x_get_calibration_(&si114x_cal, 1);
+  this->si114x_get_calibration_(&si114x_cal, 0);
   this->si114x_set_ucoef_(NULL, &si114x_cal);
 
   // enable UVindex measurement coefficients!
@@ -508,18 +517,7 @@ uint16_t SI11xComponent::readVisible() {
  @param [in] num Data Length
  @param [out] *buf Read Data
 */
-uint16_t SI11xComponent::readI2c(uint8_t register_addr, uint8_t num, uint8_t *buf) { return (uint16_t) 0; }
-
-uint8_t SI11xComponent::readI2c_8(uint8_t register_addr) {
-  uint8_t buffer[1] = {0};
-  return buffer[0];
-}
-
-uint16_t SI11xComponent::readI2c_16(uint8_t register_addr) {
-  uint8_t buffer[2] = {0, 0};
-  readI2c(register_addr, 2, buffer);
-  return (((uint16_t) buffer[1]) << 8) | (uint16_t) buffer[0];
-}
+uint16_t SI11xComponent::read_i2c_(uint8_t register_addr, uint8_t num, uint8_t *buf) { return (uint16_t) 0; }
 
 /*****************************************************************************
  * @brief
@@ -649,8 +647,8 @@ uint32_t SI11xComponent::fx20_divide(struct operand_t *operand_p) {
 
   fx20_round(numerator_p);
   fx20_round(denominator_p);
-  numerator_sh = align(numerator_p, ALIGN_LEFT);
-  denominator_sh = align(denominator_p, ALIGN_RIGHT);
+  numerator_sh = align_(numerator_p, ALIGN_LEFT);
+  denominator_sh = align_(denominator_p, ALIGN_RIGHT);
 
   result = *numerator_p / ((uint16_t) (*denominator_p));
   shift_left(&result, 20 - numerator_sh - denominator_sh);
@@ -676,8 +674,8 @@ uint32_t SI11xComponent::fx20_multiply(struct operand_t *operand_p) {
   fx20_round(val1_p);
   fx20_round(val2_p);
 
-  val1_sh = align(val1_p, ALIGN_RIGHT);
-  val2_sh = align(val2_p, ALIGN_RIGHT);
+  val1_sh = align_(val1_p, ALIGN_RIGHT);
+  val2_sh = align_(val2_p, ALIGN_RIGHT);
 
   result = (uint32_t) (((uint32_t) (*val1_p)) * ((uint32_t) (*val2_p)));
   shift_left(&result, -20 + val1_sh + val2_sh);
@@ -694,7 +692,7 @@ void SI11xComponent::fx20_round(uint32_t *value_p) {
   uint32_t mask2 = 0xffff0000;
   uint32_t lsb = 0x00008000;
 
-  shift = align(value_p, ALIGN_LEFT);
+  shift = align_(value_p, ALIGN_LEFT);
   if (((*value_p) & mask1) == mask1) {
     *value_p = 0x80000000;
     shift -= 1;
@@ -711,7 +709,7 @@ void SI11xComponent::fx20_round(uint32_t *value_p) {
  *   the number of shifted bits is returned. The value in value_p is
  *   overwritten.
  ******************************************************************************/
-int8_t SI11xComponent::align(uint32_t *value_p, int8_t direction) {
+int8_t SI11xComponent::align_(uint32_t *value_p, int8_t direction) {
   int8_t local_shift, shift;
   uint32_t mask;
 
@@ -817,7 +815,7 @@ int16_t SI11xComponent::si114x_get_calibration_(SI114X_CAL_S *si114x_cal, uint8_
   if (security == 1) {
     int8_t i;
 
-    retval = readI2c(SI_REG_VISIBLE_DATA, 12, buffer);
+    retval = read_i2c_(SI_REG_VISIBLE_DATA, 12, buffer);
     // retval = Si114xBlockRead( si114x_handle, REG_ALS_VIS_DATA0, 12, buffer );
     if (retval != 0) {
       retval = -2;
@@ -841,7 +839,7 @@ int16_t SI11xComponent::si114x_get_calibration_(SI114X_CAL_S *si114x_cal, uint8_
       goto error_exit;
     }
 
-    response = readI2c_8(SI_REG_RESPONSE);
+    response = this->read_value_(SI_REG_RESPONSE);
     // response = Si114xReadFromRegister( si114x_handle, REG_RESPONSE );
     if (response != 0) {
       delay(1);
@@ -851,7 +849,7 @@ int16_t SI11xComponent::si114x_get_calibration_(SI114X_CAL_S *si114x_cal, uint8_
   // Request for the calibration data
   retval = this->set_value_(SI_REG_COMMAND, 0x12);
   // retval = Si114xWriteToRegister( si114x_handle, REG_COMMAND, 0x12 );
-  _waitUntilSleep();
+  wait_until_sleep_();
 
   if (retval != 0) {
     retval = -2;
@@ -860,7 +858,7 @@ int16_t SI11xComponent::si114x_get_calibration_(SI114X_CAL_S *si114x_cal, uint8_
 
   // Wait for the response register to increment
   do {
-    response = readI2c_8(SI_REG_RESPONSE);
+    response = this->read_value_(SI_REG_RESPONSE);
     // response = Si114xReadFromRegister( si114x_handle, REG_RESPONSE );
     //  If the upper nibbles are non-zero, something is wrong
     if (response == 0x80) {
@@ -883,35 +881,34 @@ int16_t SI11xComponent::si114x_get_calibration_(SI114X_CAL_S *si114x_cal, uint8_
   } while (response != 1);
 
   // Retrieve the 12 bytes from the interface registers
-  retval = readI2c(SI_REG_VISIBLE_DATA, 12, buffer);
+  retval = read_i2c_(SI_REG_VISIBLE_DATA, 12, buffer);
   if (retval != 0) {
     retval = -2;
     goto error_exit;
   }
 
-  retval = si114x_get_cal_index(buffer);
+  retval = si114x_get_cal_index_(buffer);
 
   if (retval != 0) {
     retval = -2;
     goto error_exit;
   }
 
-  si114x_cal->ledi_ratio = ledi_ratio(buffer);
-  si114x_cal->vispd_correction = vispd_correction(buffer);
-  si114x_cal->irpd_correction = irpd_correction(buffer);
-  si114x_cal->adcrange_ratio = adcrange_ratio(buffer);
-  si114x_cal->ucoef_p = calref[find_cal_index(buffer)].ucoef;
-  si114x_cal->irsize_ratio = irsize_ratio(buffer);
-
+  si114x_cal->ledi_ratio = ledi_ratio_(buffer);
+  si114x_cal->vispd_correction = vispd_correction_(buffer);
+  si114x_cal->irpd_correction = irpd_correction_(buffer);
+  si114x_cal->adcrange_ratio = adcrange_ratio_(buffer);
+  si114x_cal->ucoef_p = calref[find_cal_index_(buffer)].ucoef;
+  si114x_cal->irsize_ratio = irsize_ratio_(buffer);
   return 0;
 
 error_exit:
+  si114x_cal->ledi_ratio = FX20_ONE;
   si114x_cal->vispd_correction = FX20_ONE;
   si114x_cal->irpd_correction = FX20_ONE;
   si114x_cal->adcrange_ratio = FLT_TO_FX20(14.5);
-  si114x_cal->irsize_ratio = FLT_TO_FX20(6.0);
-  si114x_cal->ledi_ratio = FX20_ONE;
   si114x_cal->ucoef_p = NULL;
+  si114x_cal->irsize_ratio = FLT_TO_FX20(6.0);
   return retval;
 }
 /*****************************************************************************
@@ -955,7 +952,7 @@ int16_t SI11xComponent::si114x_set_ucoef_(uint8_t *input_ucoef, SI114X_CAL_S *si
     return -1;
 
   // retrieve part identification
-  response = readI2c_8(SI_REG_PARTID);
+  response = this->read_value_(SI_REG_PARTID);
   // response = Si114xReadFromRegister( si114x_handle, REG_PART_ID );
   switch (response) {
     case 0x32:
@@ -1004,7 +1001,7 @@ int16_t SI11xComponent::si114x_set_ucoef_(uint8_t *input_ucoef, SI114X_CAL_S *si
  *   Writes 0x11 to the Command Register, then populates buffer[12]
  *   and buffer[13] with the factory calibration index
  ******************************************************************************/
-int16_t SI11xComponent::si114x_get_cal_index(uint8_t *buf) {
+int16_t SI11xComponent::si114x_get_cal_index_(uint8_t *buf) {
   int16_t retval;
   uint8_t response;
 
@@ -1018,7 +1015,7 @@ int16_t SI11xComponent::si114x_get_cal_index(uint8_t *buf) {
     if (retval != 0)
       return -1;
 
-    response = readI2c_8(SI_REG_RESPONSE);
+    response = this->read_value_(SI_REG_RESPONSE);
     // response = Si114xReadFromRegister( si114x_handle, REG_RESPONSE );
     if (response != 0) {
       delay(1);
@@ -1028,12 +1025,12 @@ int16_t SI11xComponent::si114x_get_cal_index(uint8_t *buf) {
   // Retrieve the index
   retval = this->set_value_(SI_REG_COMMAND, 0x11);
   // retval = Si114xWriteToRegister( si114x_handle, REG_COMMAND, 0x11 );
-  _waitUntilSleep();
+  wait_until_sleep_();
 
   if (retval != 0)
     return -1;
 
-  retval = readI2c(REG_PS1_DATA0, 2, &(buf[12]));
+  retval = read_i2c_(REG_PS1_DATA0, 2, &(buf[12]));
   // retval = Si114xBlockRead( si114x_handle, REG_PS1_DATA0, 2, &(buffer[12]) );
   if (retval != 0)
     return -1;
@@ -1045,13 +1042,13 @@ int16_t SI11xComponent::si114x_get_cal_index(uint8_t *buf) {
  * @brief
  *   Waits until the Si113x/4x is sleeping before proceeding
  ******************************************************************************/
-int16_t SI11xComponent::_waitUntilSleep() {
+int16_t SI11xComponent::wait_until_sleep_() {
   int8_t response = -1;
   uint8_t count = 0;
   // This loops until the Si114x is known to be in its sleep state
   // or if an i2c error occurs
   while (count < LOOP_TIMEOUT_MS) {
-    response = readI2c_8(REG_CHIP_STAT);
+    response = this->read_value_(REG_CHIP_STAT);
     // response = Si114xReadFromRegister(si114x_handle, REG_CHIP_STAT);
     if (response == 1)
       break;
@@ -1068,12 +1065,12 @@ int16_t SI11xComponent::_waitUntilSleep() {
  *   Returns the ratio to adjust for differences in IRLED drive strength. Note
  *   that this does not help with LED irradiance variation.
  ******************************************************************************/
-uint32_t SI11xComponent::ledi_ratio(uint8_t *buffer) {
+uint32_t SI11xComponent::ledi_ratio_(uint8_t *buffer) {
   struct operand_t op;
   uint32_t result;
   int16_t index;
 
-  index = find_cal_index(buffer);
+  index = find_cal_index_(buffer);
 
   if (index < 0)
     result = FX20_ONE;
@@ -1096,7 +1093,7 @@ uint32_t SI11xComponent::ledi_ratio(uint8_t *buffer) {
  *   index stored in the Si114x so that it is possible to know which calibration
  *   reference values to use.
  ******************************************************************************/
-int16_t SI11xComponent::find_cal_index(uint8_t *buffer) {
+int16_t SI11xComponent::find_cal_index_(uint8_t *buffer) {
   int16_t index;
   uint8_t size;
 
@@ -1128,10 +1125,10 @@ int16_t SI11xComponent::find_cal_index(uint8_t *buffer) {
  * @brief
  *   Returns the calibration ratio to be applied to VIS measurements
  ******************************************************************************/
-uint32_t SI11xComponent::vispd_correction(uint8_t *buffer) {
+uint32_t SI11xComponent::vispd_correction_(uint8_t *buffer) {
   struct operand_t op;
   uint32_t result;
-  int16_t index = find_cal_index(buffer);
+  int16_t index = find_cal_index_(buffer);
 
   if (index < 0)
     result = FX20_ONE;
@@ -1149,10 +1146,10 @@ uint32_t SI11xComponent::vispd_correction(uint8_t *buffer) {
  * @brief
  *   Returns the calibration ratio to be applied to IR measurements
  ******************************************************************************/
-uint32_t SI11xComponent::irpd_correction(uint8_t *buffer) {
+uint32_t SI11xComponent::irpd_correction_(uint8_t *buffer) {
   struct operand_t op;
   uint32_t result;
-  int16_t index = find_cal_index(buffer);
+  int16_t index = find_cal_index_(buffer);
 
   if (index < 0)
     result = FX20_ONE;
@@ -1173,7 +1170,7 @@ uint32_t SI11xComponent::irpd_correction(uint8_t *buffer) {
  *   It is typically 14.5, but may have some slight component-to-component
  *   differences.
  ******************************************************************************/
-uint32_t SI11xComponent::adcrange_ratio(uint8_t *buffer) {
+uint32_t SI11xComponent::adcrange_ratio_(uint8_t *buffer) {
   struct operand_t op;
   uint32_t result;
 
@@ -1191,7 +1188,7 @@ uint32_t SI11xComponent::adcrange_ratio(uint8_t *buffer) {
  *   Returns the ratio to correlate between measurements made from large PD
  *   to measurements made from small PD.
  ******************************************************************************/
-uint32_t SI11xComponent::irsize_ratio(uint8_t *buffer) {
+uint32_t SI11xComponent::irsize_ratio_(uint8_t *buffer) {
   struct operand_t op;
   uint32_t result;
 
