@@ -428,7 +428,7 @@ bool SI11xComponent::configuration_1145_() {
   // writeI2c(SI_REG_UCOEFF3, 0x00);
 
   // SET enabled sensors
-  if (this->poroximity_led_attached_)
+  if (this->proximity_led_attached_)
     this->write_param_(SI_CHIPLIST_PARAM_OFFSET,
                        SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_PS1 | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS);
   else
@@ -443,14 +443,14 @@ bool SI11xComponent::configuration_1145_() {
   this->set_value_(SI_REG_MEASRATE1, 0x00);  // 255 * 31.25uS = 8ms
 
   // Set auto run
-  if (this->poroximity_led_attached_)
+  if (this->proximity_led_attached_)
     this->send_command_(PSALS_AUTO);
   else
     this->send_command_(ALS_AUTO);
   delay(10);
 
   // device capable if external IR attached
-  this->proximity_supported_ = this->poroximity_led_attached_;
+  this->proximity_supported_ = this->proximity_led_attached_;
 
   return true;
 }
@@ -472,7 +472,7 @@ void SI11xComponent::set_calibrated_coefficients_() {
 }
 
 void SI11xComponent::set_proximity_params_() {
-  if (!this->poroximity_led_attached_)
+  if (!this->proximity_led_attached_)
     return;
 
   // enable interrupt on every sample
