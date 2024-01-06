@@ -154,8 +154,8 @@ static const uint8_t SI_IRQEN_PS2EVERYSAMPLE = 0x08;
 static const uint8_t SI_IRQEN_PS3EVERYSAMPLE = 0x10;
 
 static const uint8_t LOOP_TIMEOUT_MS = 200;
-static const uint8_t ALIGN_LEFT 1;
-static const uint8_t ALIGN_RIGHT - 1;
+static const uint8_t ALIGN_LEFT = 1;
+static const uint8_t ALIGN_RIGHT = -1;
 
 uint8_t SI11xComponent::read_value_(uint8_t reg) {
   uint8_t data;
