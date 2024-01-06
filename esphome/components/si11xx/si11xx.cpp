@@ -330,8 +330,7 @@ void SI11xComponent::dump_config() {
       break;
   }
   // this->read_config_();
-  // ESP_LOGI(TAG, "Firmware Version: %d.%d.%d", this->firmware_ver_major_, this->firmware_ver_minor_,
-  //          this->firmware_ver_build_);
+
   LOG_I2C_DEVICE(this);
   ESP_LOGI(TAG, "Type: 0x%x Rev: %d Seq: %d", this->device_type_, this->device_rev_, this->device_seq_);
 
@@ -340,14 +339,10 @@ void SI11xComponent::dump_config() {
   LOG_SENSOR("  ", "UVI Sensor:", this->uvi_sensor_);
   LOG_SENSOR("  ", "UV Sensor:", this->uv_sensor_);
 
+  ESP_LOGI(TAG, "Measure rate: 0x%x 0x%x", this->read_value_(SI_REG_MEASRATE0), this->read_value_(SI_REG_MEASRATE1));
+
   LOG_UPDATE_INTERVAL(this);
 
-  // if (this->temperature_ != nullptr && this->humidity_ != nullptr) {
-  //   LOG_SENSOR("  ", "  Temperature Compensation:", this->temperature_);
-  //   LOG_SENSOR("  ", "  Humidity Compensation:", this->humidity_);
-  // } else {
-  //   ESP_LOGCONFIG(TAG, "  Compensation: Not configured");
-  // }
 }
 
 void SI11xComponent::get_device_() {
@@ -355,7 +350,7 @@ void SI11xComponent::get_device_() {
   this->device_seq_ = this->read_value_(SI_REG_SEQID);
   this->device_rev_ = this->read_value_(SI_REG_REVID);
 
-  // fix measure rate registers if seq = 0x01. Code error in specification documents
+  // fix measure rate registers if seq = 0x01. Code error noted in specification documents
   if (this->device_seq_ == 1) {
     SI_REG_MEASRATE0 = 0x0A;
     SI_REG_MEASRATE1 = 0x08;
@@ -386,11 +381,14 @@ bool SI11xComponent::configuration_1132_() {
   // SET AUX_ADCMUX
   this->write_param_(SI_AUX_ADC_MUX_PARAM_OFFSET, SI_AUX_ADCMUX_TEMPERATURE);
 
-  // Rate setting
-  uint32_t p = get_update_interval();
+  // Rate setting. X * 31.25us = Yms
+  // Convert half update interval to polling rate
+  uint32_t p = get_update_interval() / 2 / 31.25;
+  uint8_t lsb = p && 0xFF;
+  uint8_t msb = (p >> 8) && 0xFF;
 
-  this->set_value_(SI_REG_MEASRATE0, 0xFF);  // 255 * 31.25uS = 8ms
-  this->set_value_(SI_REG_MEASRATE1, 0x00);  // 255 * 31.25uS = 8ms
+  this->set_value_(SI_REG_MEASRATE0, lsb);  // 255 * 31.25uS = 8ms
+  this->set_value_(SI_REG_MEASRATE1, msb);  // 255 * 31.25uS = 8ms
 
   // Set auto run
   this->send_command_(ALS_AUTO);
