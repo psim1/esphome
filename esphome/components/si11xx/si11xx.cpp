@@ -156,7 +156,7 @@ static const uint8_t SI_IRQEN_PS1EVERYSAMPLE = 0x04;
 static const uint8_t SI_IRQEN_PS2EVERYSAMPLE = 0x08;
 static const uint8_t SI_IRQEN_PS3EVERYSAMPLE = 0x10;
 
-static const uint8_t LOOP_TIMEOUT_MS = 200;
+static const uint8_t LOOP_TIMEOUT_MS = 30;
 static const int8_t ALIGN_LEFT = 1;
 static const int8_t ALIGN_RIGHT = -1;
 
@@ -202,17 +202,20 @@ void SI11xComponent::write_param_(uint8_t register_addr, uint8_t value) {
 // Special command handling protocol
 // Write 0x00 to command register, read and verify response
 // write command, read response regeister is non-zero
-bool SI11xComponent::send_command_(uint8_t value) {
+bool SI11xComponent::send_command_(uint8_t register_or_value) {
   uint8_t response;
-  do {
+  uint8_t count = 0;
+  while (count < LOOP_TIMEOUT_MS) {
     this->set_value_(SI_REG_COMMAND, SI_NOP);
     response = this->read_value_(SI_REG_RESPONSE);
-    if (response != 0) {
-      delay(1);
+    if (response == 0) {
+      break;
     }
-  } while (response != 0);
+    delay(1);
+    count++;
+  }
 
-  if (this->set_value_(SI_REG_COMMAND, value)) {
+  if (this->set_value_(SI_REG_COMMAND, register_or_value)) {
     wait_until_sleep_();
     response = this->read_value_(SI_REG_RESPONSE);
     if (response != 0) {
