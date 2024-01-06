@@ -397,14 +397,8 @@ bool SI11xComponent::configuration_1132_() {
   // SET AUX_ADCMUX
   this->write_param_(SI_AUX_ADC_MUX_PARAM_OFFSET, SI_AUX_ADCMUX_TEMPERATURE);
 
-  // Rate setting. X * 31.25us = Yms
-  // Convert half update interval to polling rate
-  uint32_t p = (int) (get_update_interval() / (2 * 31.25));
-  uint8_t lsb = p & 0xFF;
-  uint8_t msb = (p >> 8) & 0xFF;
-
-  this->set_value_(SI_REG_MEASRATE0, lsb);  // 255 * 31.25uS = 8ms
-  this->set_value_(SI_REG_MEASRATE1, msb);  // 255 * 31.25uS = 8ms
+  // Rate setting.
+  this->set_measure_rate_();
 
   // Set auto run
   this->send_command_(ALS_AUTO);
@@ -439,8 +433,7 @@ bool SI11xComponent::configuration_1145_() {
   this->set_ambient_light_params_();
 
   // Rate setting
-  this->set_value_(SI_REG_MEASRATE0, 0xFF);  // 255 * 31.25uS = 8ms
-  this->set_value_(SI_REG_MEASRATE1, 0x00);  // 255 * 31.25uS = 8ms
+  this->set_measure_rate_();
 
   // Set auto run
   if (this->proximity_led_attached_)
@@ -453,6 +446,17 @@ bool SI11xComponent::configuration_1145_() {
   this->proximity_supported_ = this->proximity_led_attached_;
 
   return true;
+}
+
+void SI11xComponent::set_measure_rate_() {
+  // Rate setting. X * 31.25us = Yms
+  // Convert half update interval to polling rate
+  uint32_t p = (int) (get_update_interval() / (2 * 31.25));
+  uint8_t lsb = p & 0xFF;
+  uint8_t msb = (p >> 8) & 0xFF;
+
+  this->set_value_(SI_REG_MEASRATE0, lsb);  // 255 * 31.25uS = 8ms
+  this->set_value_(SI_REG_MEASRATE1, msb);  // 255 * 31.25uS = 8ms
 }
 
 void SI11xComponent::set_calibrated_coefficients_() {
