@@ -15,7 +15,7 @@ namespace si11xx {
 static const char *const TAG = "si11xx";
 
 static const uint8_t SI11X_BOOT_DELAY = 30;
-static const uint8_t SI11X_DELAY = 5;
+static const uint8_t SI11X_DELAY = 2;
 
 static const uint8_t SI_REG_PARTID = 0x00;  // Device type register
 static const uint8_t SI_REG_REVID = 0x01;   // Device revision
@@ -215,7 +215,7 @@ bool SI11xComponent::send_command_(uint8_t value) {
   if (this->set_value_(SI_REG_COMMAND, value)) {
     wait_until_sleep_();
     response = this->read_value_(SI_REG_RESPONSE);
-    if (data != 0) {
+    if (response != 0) {
       // successful
       return true;
     }
@@ -1087,18 +1087,19 @@ int16_t SI11xComponent::si114x_get_cal_index_(uint8_t *buf) {
 /*****************************************************************************
  * @brief
  *   Waits until the Si113x/4x is sleeping before proceeding
+ *   Bit 0 - sleep
+ *   Bit 1 - suspended
+ *   Bit 2 - running
  ******************************************************************************/
 void SI11xComponent::wait_until_sleep_() {
-  //  int8_t response = -1;
+  uint8_t response = 0;
   uint8_t count = 0;
   // This loops until the Si114x is known to be in its sleep state
   // or if an i2c error occurs
   while (count < LOOP_TIMEOUT_MS) {
     response = this->read_value_(REG_CHIP_STAT);
-    if (response == 1)
+    if (response == 1)  // Sleep mode
       break;
-    if (response < 0)
-      return;  // (int16_t) response;
     count++;
     delay(1);
   }

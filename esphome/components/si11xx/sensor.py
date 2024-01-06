@@ -58,7 +58,7 @@ CONFIG_SCHEMA = cv.All(
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_INFRA_RED): sensor.sensor_schema(
-                unit_of_measurement=UNIT_COUNTS,
+                unit_of_measurement=UNIT_LUX,
                 icon=ICON_BRIGHTNESS_5,
                 accuracy_decimals=1,
                 device_class=DEVICE_CLASS_ILLUMINANCE,
