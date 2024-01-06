@@ -546,7 +546,8 @@ uint16_t SI11xComponent::read_proximity() {
 */
 uint16_t SI11xComponent::read_uv() {
   uint16_t uv = this->read_value16_(SI_REG_UV_DATA);
-  return this->convert_data_(uv);
+  return uv;
+  // return this->convert_data_(uv);
 }
 
 /**
@@ -558,27 +559,15 @@ float SI11xComponent::read_uv_index() {
   return uv;
 }
 
-/*char *SI11xComponent::readUVScore(float uv_index) {
-  if (uv_index <= 2.0)
-    return "low";
-  if (uv_index <= 5.0)
-    return "moderate";
-  if (uv_index <= 7.0)
-    return "high";
-  if (uv_index <= 10.0)
-    return "very high";
-  return "extreme";
-}*/
-
 /**
  @brief Read IR
  @param [out] ir data (lux)
 */
 uint16_t SI11xComponent::read_ir() {
   uint16_t ir = read_value16_(SI_REG_IR_DATA);
-  return this->convert_data_(ir);
-  // ir = ((ir - 250) / 2.44) * 14.5;
-  // return ir;
+  // return this->convert_data_(ir);
+  //  ir = ((ir - 250) / 2.44) * 14.5;
+  return ir;
 }
 
 /**
@@ -587,16 +576,16 @@ uint16_t SI11xComponent::read_ir() {
 */
 uint16_t SI11xComponent::read_visible() {
   uint16_t visible = read_value16_(SI_REG_VISIBLE_DATA);
-  return this->convert_data_(visible);
+  this->convert_data_(visible);
   // visible = ((visible - 256) / 0.282) * 14.5;
-  // return visible;
+  return visible;
 }
 
 uint16_t SI11xComponent::convert_data_(uint16_t data) {
   // msb * 256 + lsb
-  uint8_t lsb = data & 0xFF;
-  uint8_t msb = (data >> 8) & 0xFF;
-  ESP_LOGD(TAG, "Conversion data:0x%04x (%d) msb:0x%02X lsb:0x%02X", data, (msb * 256), lsb);
+  uint8_t lsb = data & 0x00FF;
+  uint8_t msb = (data & 0xFF00) >> 8;
+  ESP_LOGD(TAG, "Conversion data:0x%04x (%d) msb:0x%02X lsb:0x%02X", data, msb, lsb);
   return (msb * 256) + lsb;
 }
 
