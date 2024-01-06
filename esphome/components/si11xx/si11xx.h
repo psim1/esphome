@@ -41,12 +41,10 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
   float get_setup_priority() const override { return setup_priority::DATA; }
 
   uint16_t read_uv(void);
-  float read_uvIndex(void);
+  float read_uv_index(void);
   uint16_t read_proximity(void);
   uint16_t read_ir(void);
   uint16_t read_visible(void);
-
-  uint16_t read_device(void);
 
   void load_coefficients(void);
   // control behaviour of sensor
@@ -73,7 +71,7 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
   bool proximity_supported_{false};
   uint8_t _coefficients[4];
 
-  void get_device_();
+  void get_device_type_();
   void reset_();
   uint8_t read_value_(uint8_t /*reg*/);
   uint16_t read_value16_(uint8_t /*reg*/);

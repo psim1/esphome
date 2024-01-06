@@ -254,7 +254,7 @@ void SI11xComponent::reset_() {
 
 void SI11xComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up SI11xx...");
-  this->get_device_();
+  this->get_device_type_();
   this->reset_();
   if (this->device_type_ == SI1132_DEVICE) {
     this->configuration_1132_();
@@ -349,7 +349,7 @@ void SI11xComponent::dump_config() {
   this->read_config_();
 }
 
-void SI11xComponent::get_device_() {
+void SI11xComponent::get_device_type_() {
   this->device_type_ = this->read_value_(SI_REG_PARTID);
   this->device_seq_ = this->read_value_(SI_REG_SEQID);
   this->device_rev_ = this->read_value_(SI_REG_REVID);
@@ -428,7 +428,7 @@ bool SI11xComponent::configuration_1145_() {
   // writeI2c(SI_REG_UCOEFF3, 0x00);
 
   // SET enabled sensors
-  if (this->ProximityLedAttached)
+  if (this->oroximity_led_attached_)
     this->write_param_(SI_CHIPLIST_PARAM_OFFSET,
                        SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_PS1 | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS);
   else
@@ -443,14 +443,14 @@ bool SI11xComponent::configuration_1145_() {
   this->set_value_(SI_REG_MEASRATE1, 0x00);  // 255 * 31.25uS = 8ms
 
   // Set auto run
-  if (this->ProximityLedAttached)
+  if (this->oroximity_led_attached_)
     this->send_command_(PSALS_AUTO);
   else
     this->send_command_(ALS_AUTO);
   delay(10);
 
   // device capable if external IR attached
-  this->proximity_supported_ = this->ProximityLedAttached;
+  this->proximity_supported_ = this->oroximity_led_attached_;
 
   return true;
 }
@@ -472,7 +472,7 @@ void SI11xComponent::set_calibrated_coefficients_() {
 }
 
 void SI11xComponent::set_proximity_params_() {
-  if (!this->ProximityLedAttached)
+  if (!this->oroximity_led_attached_)
     return;
 
   // enable interrupt on every sample
@@ -489,7 +489,7 @@ void SI11xComponent::set_proximity_params_() {
   // take 511 clocks to measure
   this->write_param_(SI_PS_ADC_COUNTER_PARAM_OFFSET, SI_511_ADC_CLOCK);
   // in prox mode, high range
-  if (this->OutsideMode)
+  if (this->outside_mode_)
     this->write_param_(SI_PS_ADC_MISC_PARAM_OFFSET, SI_HIGH_SIGNAL_RANGE | SI_PSADCMISC_PSMODE);
   else
     this->write_param_(SI_PS_ADC_MISC_PARAM_OFFSET, SI_NORMAL_SIGNAL_RANGE | SI_PSADCMISC_PSMODE);
@@ -501,7 +501,7 @@ void SI11xComponent::set_ambient_light_params_() {
   // take 511 clocks to measure
   this->write_param_(SI_ALS_VIS_ADC_COUNTER_PARAM_OFFSET, SI_511_ADC_CLOCK);
   // high range mode for direct sunlight
-  if (this->OutsideMode)
+  if (this->outside_mode_)
     this->write_param_(SI_ALS_VIS_ADC_MISC_PARAM_OFFSET, SI_HIGH_SIGNAL_RANGE);
   else
     this->write_param_(SI_ALS_VIS_ADC_MISC_PARAM_OFFSET, SI_NORMAL_SIGNAL_RANGE);
@@ -515,7 +515,7 @@ void SI11xComponent::set_infrared_params_() {
   // take 511 clocks to measure
   this->write_param_(SI_ALS_IR_ADC_COUNTER_PARAM_OFFSET, SI_511_ADC_CLOCK);
   // high range mode for direct sunlight
-  if (this->OutsideMode)
+  if (this->outside_mode_)
     this->write_param_(SI_ALS_IR_ADC_MISC_PARAM_OFFSET, SI_HIGH_SIGNAL_RANGE);
   else
     this->write_param_(SI_ALS_IR_ADC_MISC_PARAM_OFFSET, SI_NORMAL_SIGNAL_RANGE);
