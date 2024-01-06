@@ -272,7 +272,7 @@ void SI11xComponent::update() {
   // loop return sensor values
 
   // uv_sensor_ and uvi_sensor_
-  uint16_t data_uv = this->readUV();
+  uint16_t data_uv = this->read_uv();
   if (this->status_has_error()) {
     ESP_LOGW(TAG, "Error reading UV data");
     this->status_set_warning();
@@ -287,7 +287,7 @@ void SI11xComponent::update() {
   }
 
   // ir_sensor_
-  uint16_t data_ir = this->readIR();
+  uint16_t data_ir = this->read_ir();
   if (this->status_has_error()) {
     ESP_LOGW(TAG, "Error reading IR data");
     this->status_set_warning();
@@ -298,7 +298,7 @@ void SI11xComponent::update() {
   }
 
   // light_sensor_
-  uint16_t data_light = readVisible();
+  uint16_t data_light = read_visible();
   if (this->status_has_error()) {
     ESP_LOGW(TAG, "Error reading Visible light data");
     this->status_set_warning();
@@ -525,8 +525,8 @@ void SI11xComponent::set_infrared_params_() {
  @brief The proximity measurement
  @param [out] prox The proximity measurement
 */
-uint16_t SI11xComponent::readProximity() {
-  if (!this->proximity_supported_ && this->ProximityLedAttached)
+uint16_t SI11xComponent::read_proximity() {
+  if (!this->proximity_supported_ && this->proximity_led_attached_)
     return 0;
   return this->read_value16_(SI_REG_PROX_DATA);
 }
@@ -535,13 +535,13 @@ uint16_t SI11xComponent::readProximity() {
  @brief Read UV
  @param [out] uv rawdata
 */
-uint16_t SI11xComponent::readUV() { return this->read_value16_(SI_REG_UV_DATA); }
+uint16_t SI11xComponent::read_uv() { return this->read_value16_(SI_REG_UV_DATA); }
 
 /**
  @brief Read UV
  @param [out] uv rawdata/100 -> UV INDEX
 */
-float SI11xComponent::readUVIndex() {
+float SI11xComponent::read_uv_index() {
   float uv = readUV() / 100.0;
   return uv;
 }
@@ -562,9 +562,9 @@ float SI11xComponent::readUVIndex() {
  @brief Read IR
  @param [out] ir data (lux)
 */
-uint16_t SI11xComponent::readIR() {
+uint16_t SI11xComponent::read_ir() {
   uint16_t ir = read_value16_(SI_REG_IR_DATA);
-  ir = ((ir - 250) / 2.44) * 14.5;
+  // ir = ((ir - 250) / 2.44) * 14.5;
   return ir;
 }
 
@@ -572,9 +572,9 @@ uint16_t SI11xComponent::readIR() {
  @brief Read Visible
  @param [out] Visible data (lux)
 */
-uint16_t SI11xComponent::readVisible() {
+uint16_t SI11xComponent::read_visible() {
   uint16_t visible = read_value16_(SI_REG_VISIBLE_DATA);
-  visible = ((visible - 256) / 0.282) * 14.5;
+  // visible = ((visible - 256) / 0.282) * 14.5;
   return visible;
 }
 

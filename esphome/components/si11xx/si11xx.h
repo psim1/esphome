@@ -40,18 +40,18 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
 
-  uint16_t readUV(void);
-  float readUVIndex(void);
-  uint16_t readProximity(void);
-  uint16_t readIR(void);
-  uint16_t readVisible(void);
+  uint16_t read_uv(void);
+  float read_uvIndex(void);
+  uint16_t read_proximity(void);
+  uint16_t read_ir(void);
+  uint16_t read_visible(void);
 
-  uint16_t readDevice(void);
+  uint16_t read_device(void);
 
-  void loadCoEfficients(void);
+  void load_coefficients(void);
   // control behaviour of sensor
-  bool ProximityLedAttached = false;
-  bool OutsideMode = true;
+  bool proximity_led_attached_{false};
+  bool outside_mode_{true};
   uint8_t CoEfficientValues[4];
 
   void set_light_sensor(sensor::Sensor *light_sensor) { this->light_sensor_ = light_sensor; }
