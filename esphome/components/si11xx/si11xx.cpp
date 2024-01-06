@@ -365,6 +365,12 @@ void SI11xComponent::get_device_() {
 void SI11xComponent::read_config_() {
   ESP_LOGI(TAG, "Type: 0x%x Rev: %d Seq: %d", this->device_type_, this->device_rev_, this->device_seq_);
   ESP_LOGI(TAG, "Measure rate: 0x%02X%02X", this->read_value_(SI_REG_MEASRATE1), this->read_value_(SI_REG_MEASRATE0));
+
+  uint32_t i = get_update_interval();
+  uint32_t p = (int) (i / (2 * 31.25));
+  uint8_t lsb = p && 0xFF;
+  uint8_t msb = (p >> 8) && 0xFF;
+  ESP_LOGI(TAG, "Intervals i: 0x%d p:%d msb:0x%02X lsb:0x%02X", i, p, msb, lsb);
 }
 
 bool SI11xComponent::configuration_1132_() {
