@@ -364,13 +364,13 @@ void SI11xComponent::get_device_type_() {
 // check config value
 void SI11xComponent::read_config_() {
   ESP_LOGI(TAG, "Type: 0x%x Rev: %d Seq: %d", this->device_type_, this->device_rev_, this->device_seq_);
-  ESP_LOGI(TAG, "Measure rate: 0x%02X%02X", this->read_value_(SI_REG_MEASRATE1), this->read_value_(SI_REG_MEASRATE0));
+  ESP_LOGD(TAG, "Measure rate: 0x%02X%02X", this->read_value_(SI_REG_MEASRATE1), this->read_value_(SI_REG_MEASRATE0));
 
   uint32_t i = get_update_interval();
   uint32_t p = (int) (i / (2 * 31.25));
   uint8_t lsb = p & 0xFF;
   uint8_t msb = (p >> 8) & 0xFF;
-  ESP_LOGI(TAG, "Intervals i:%d p:%d msb:0x%02X lsb:0x%02X", i, p, msb, lsb);
+  ESP_LOGV(TAG, "Intervals i:%d p:%d msb:0x%02X lsb:0x%02X", i, p, msb, lsb);
 }
 
 bool SI11xComponent::configuration_1132_() {
@@ -415,11 +415,11 @@ bool SI11xComponent::configuration_1132_() {
 */
 bool SI11xComponent::configuration_1145_() {
   // enable UVindex measurement coefficients!
-  this->set_calibrated_coefficients_();
-  // writeI2c(SI_REG_UCOEFF0, 0x29);
-  // writeI2c(SI_REG_UCOEFF1, 0x89);
-  // writeI2c(SI_REG_UCOEFF2, 0x02);
-  // writeI2c(SI_REG_UCOEFF3, 0x00);
+  // this->set_calibrated_coefficients_();
+  this->write_param_(SI_REG_UCOEFF0, 0x29);
+  this->write_param_(SI_REG_UCOEFF1, 0x89);
+  this->write_param_(SI_REG_UCOEFF2, 0x02);
+  this->write_param_(SI_REG_UCOEFF3, 0x00);
 
   // SET enabled sensors
   if (this->proximity_led_attached_) {
@@ -594,7 +594,10 @@ uint16_t SI11xComponent::read_visible() {
 
 uint16_t SI11xComponent::convert_data_(uint16_t data) {
   // msb * 256 + lsb
-  return (((data >> 8) & 0xff) * 256) + (data & 0xff);
+  uint8_t lsb = data & 0xFF;
+  uint8_t msb = (data >> 8) & 0xFF;
+  ESP_LOGD(TAG, "Conversion data:%04x msb:0x%02X lsb:0x%02X", data, (msb * 256), lsb);
+  return (msb * 256) + lsb;
 }
 
 /**
@@ -829,7 +832,7 @@ int8_t SI11xComponent::align_(uint32_t *value_p, int8_t direction) {
   }
 
   shift = 0;
-  while (1) {
+  while (true) {
     if (*value_p & mask)
       break;
     shift++;
@@ -923,28 +926,8 @@ int16_t SI11xComponent::si114x_get_calibration_(SI114X_CAL_S *si114x_cal, uint8_
     }
   }
 
-  // Check to make sure that the device is ready to receive commands
-  do {
-    retval = this->send_command_(SI_NOP);
-    // retval = Si114xNop( si114x_handle );
-    if (retval != 0) {
-      retval = -2;
-      goto error_exit;
-    }
-
-    response = this->read_value_(SI_REG_RESPONSE);
-    // response = Si114xReadFromRegister( si114x_handle, REG_RESPONSE );
-    if (response != 0) {
-      delay(1);
-    }
-  } while (response != 0);
-
   // Request for the calibration data
-  retval = this->send_command_(0x12);
-  // retval = Si114xWriteToRegister( si114x_handle, REG_COMMAND, 0x12 );
-  wait_until_sleep_();
-
-  if (retval != 0) {
+  if (!this->send_command_(0x12)) {
     retval = -2;
     goto error_exit;
   }
@@ -959,7 +942,7 @@ int16_t SI11xComponent::si114x_get_calibration_(SI114X_CAL_S *si114x_cal, uint8_
       // leading to command error. So, rather than returning an
       // error, handle the error by Nop and set ratios to -1.0
       // and return normally.
-      this->send_command_(SI_NOP);
+      this->set_value_(SI_REG_COMMAND, SI_NOP);
       // Si114xNop( si114x_handle );
       retval = -3;
       goto error_exit;
@@ -1000,7 +983,7 @@ error_exit:
   si114x_cal->vispd_correction = FX20_ONE;
   si114x_cal->irpd_correction = FX20_ONE;
   si114x_cal->adcrange_ratio = FLT_TO_FX20(14.5);
-  si114x_cal->ucoef_p = NULL;
+  si114x_cal->ucoef_p = nullptr;
   si114x_cal->irsize_ratio = FLT_TO_FX20(6.0);
   return retval;
 }
@@ -1062,7 +1045,7 @@ int16_t SI11xComponent::si114x_set_ucoef_(uint8_t *input_ucoef, SI114X_CAL_S *si
   if (!temp)
     return -1;
 
-  if (si114x_cal != 0) {
+  if (si114x_cal != nullptr) {
     if (si114x_cal->vispd_correction > 0)
       vc = si114x_cal->vispd_correction;
     if (si114x_cal->irpd_correction > 0)
@@ -1098,31 +1081,12 @@ int16_t SI11xComponent::si114x_set_ucoef_(uint8_t *input_ucoef, SI114X_CAL_S *si
  ******************************************************************************/
 int16_t SI11xComponent::si114x_get_cal_index_(uint8_t *buf) {
   int16_t retval;
-  uint8_t response;
 
   if (buf == nullptr)
     return -1;
 
-  // Check to make sure that the device is ready to receive commands
-  do {
-    retval = this->send_command_(SI_NOP);
-    // retval = Si114xNop( si114x_handle );
-    if (retval != 0)
-      return -1;
-
-    response = this->read_value_(SI_REG_RESPONSE);
-    // response = Si114xReadFromRegister( si114x_handle, REG_RESPONSE );
-    if (response != 0) {
-      delay(1);
-    }
-  } while (response != 0);
-
   // Retrieve the index
-  retval = this->send_command_(0x11);
-  // retval = Si114xWriteToRegister( si114x_handle, REG_COMMAND, 0x11 );
-  wait_until_sleep_();
-
-  if (retval != 0)
+  if (!this->send_command_(0x11))
     return -1;
 
   retval = read_i2c_(REG_PS1_DATA0, 2, &(buf[12]));
@@ -1152,7 +1116,6 @@ void SI11xComponent::wait_until_sleep_() {
     count++;
     delay(1);
   }
-  return;
 }
 
 /*****************************************************************************

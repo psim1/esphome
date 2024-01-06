@@ -8,7 +8,7 @@ namespace esphome {
 namespace si11xx {
 
 // INCLUDE_SI114X_CALIBRATIONCODE
-#define FLT_TO_FX20(x) (((int32_t) ((x * 1048576) + .5)))
+#define FLT_TO_FX20(x) (((int32_t) (((x) * 1048576) + .5)))
 #define FX20_ONE FLT_TO_FX20(1.000000)
 #define FX20_BAD_VALUE 0xffffffff
 
