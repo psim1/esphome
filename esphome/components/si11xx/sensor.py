@@ -3,9 +3,9 @@ import esphome.config_validation as cv
 from esphome.components import i2c, sensor
 from esphome.const import (
     CONF_ID,
-    CONF_GAIN,
+    #    CONF_GAIN,
     CONF_LIGHT,
-    CONF_RESOLUTION,
+    #    CONF_RESOLUTION,
     UNIT_LUX,
     ICON_BRIGHTNESS_5,
     DEVICE_CLASS_ILLUMINANCE,
@@ -29,23 +29,23 @@ UNIT_COUNTS = "#"
 UNIT_UVI = "UVI"
 
 #SI11XGAIN = si11xx_ns.enum("LTR390GAIN")
-#GAIN_OPTIONS = {
+# GAIN_OPTIONS = {
 #    "X1": SI11XGAIN.LTR390_GAIN_1,
 #    "X3": SI11XGAIN.LTR390_GAIN_3,
 #    "X6": SI11XGAIN.LTR390_GAIN_6,
 #    "X9": SI11XGAIN.LTR390_GAIN_9,
 #    "X18": SI11XGAIN.LTR390_GAIN_18,
-#}
+# }
 
 #SI11XRESOLUTION = si11xx_ns.enum("LTR390RESOLUTION")
-#RES_OPTIONS = {
+# RES_OPTIONS = {
 #    20: SI11XRESOLUTION.LTR390_RESOLUTION_20BIT,
 #    19: SI11XRESOLUTION.LTR390_RESOLUTION_19BIT,
 #    18: SI11XRESOLUTION.LTR390_RESOLUTION_18BIT,
 #    17: SI11XRESOLUTION.LTR390_RESOLUTION_17BIT,
 #    16: SI11XRESOLUTION.LTR390_RESOLUTION_16BIT,
 #    13: SI11XRESOLUTION.LTR390_RESOLUTION_13BIT,
-#}
+# }
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
@@ -75,8 +75,8 @@ CONFIG_SCHEMA = cv.All(
                 accuracy_decimals=1,
                 device_class=DEVICE_CLASS_ILLUMINANCE,
             ),
-            #cv.Optional(CONF_GAIN, default="X3"): cv.enum(GAIN_OPTIONS),
-            #cv.Optional(CONF_RESOLUTION, default=18): cv.enum(RES_OPTIONS),
+            # cv.Optional(CONF_GAIN, default="X3"): cv.enum(GAIN_OPTIONS),
+            # cv.Optional(CONF_RESOLUTION, default=18): cv.enum(RES_OPTIONS),
             cv.Optional(CONF_WINDOW_CORRECTION_FACTOR, default=1.0): cv.float_range(
                 min=1.0
             ),
@@ -100,9 +100,9 @@ async def to_code(config):
     await cg.register_component(var, config)
     await i2c.register_i2c_device(var, config)
 
-    #cg.add(var.set_gain_value(config[CONF_GAIN]))
-    #cg.add(var.set_res_value(config[CONF_RESOLUTION]))
-    #cg.add(var.set_wfac_value(config[CONF_WINDOW_CORRECTION_FACTOR]))
+    # cg.add(var.set_gain_value(config[CONF_GAIN]))
+    # cg.add(var.set_res_value(config[CONF_RESOLUTION]))
+    # cg.add(var.set_wfac_value(config[CONF_WINDOW_CORRECTION_FACTOR]))
 
     for key, funcName in TYPES.items():
         if key in config:

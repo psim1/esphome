@@ -154,8 +154,8 @@ static const uint8_t SI_IRQEN_PS2EVERYSAMPLE = 0x08;
 static const uint8_t SI_IRQEN_PS3EVERYSAMPLE = 0x10;
 
 static const uint8_t LOOP_TIMEOUT_MS = 200;
-static const uint8_t ALIGN_LEFT = 1;
-static const uint8_t ALIGN_RIGHT = -1;
+static const int8_t ALIGN_LEFT = 1;
+static const int8_t ALIGN_RIGHT = -1;
 
 uint8_t SI11xComponent::read_value_(uint8_t reg) {
   uint8_t data;
@@ -287,7 +287,7 @@ bool SI11xComponent::configuration_1132_() {
   this->set_ambient_light_params_();
 
   /* IR */
-  setInfraRedParams();
+  this->set_infrared_params_();
 
   // SET AUX_ADCMUX
   this->write_param_(SI_AUX_ADC_MUX_PARAM_OFFSET, SI_AUX_ADCMUX_TEMPERATURE);
@@ -323,8 +323,8 @@ bool SI11xComponent::configuration_1145_() {
   else
     this->write_param_(SI_CHIPLIST_PARAM_OFFSET, SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS);
 
-  setProximityParams();
-  setInfraRedParams();
+  this->set_proximity_params_();
+  this->set_infrared_params_();
   this->set_ambient_light_params_();
 
   // Rate setting
@@ -346,10 +346,9 @@ bool SI11xComponent::configuration_1145_() {
 void SI11xComponent::set_calibrated_coefficients_() {
   SI114X_CAL_S si114x_cal;
 
-  // si114x_get_calibration();
   /* UV Coefficients */
-  si114x_get_calibration(&si114x_cal, 1);
-  si114x_set_ucoef(NULL, &si114x_cal);
+  this->si114x_get_calibration_(&si114x_cal, 1);
+  this->si114x_set_ucoef_(NULL, &si114x_cal);
 
   // enable UVindex measurement coefficients!
   // writeI2c(SI_REG_UCOEFF0, readI2c_8(0x22));
@@ -360,7 +359,7 @@ void SI11xComponent::set_calibrated_coefficients_() {
   // 0x22 to 0x2D.
 }
 
-void SI11xComponent::setProximityParams() {
+void SI11xComponent::set_proximity_params_() {
   if (!this->ProximityLedAttached)
     return;
 
@@ -396,7 +395,7 @@ void SI11xComponent::set_ambient_light_params_() {
     this->write_param_(SI_ALS_VIS_ADC_MISC_PARAM_OFFSET, SI_NORMAL_SIGNAL_RANGE);
 }
 
-void SI11xComponent::setInfraRedParams() {
+void SI11xComponent::set_infrared_params_() {
   this->write_param_(SI_ALS_IR_ADC_MUX_PARAM_OFFSET, SI_ALS_IR_ADCMUX_SMALLIR);
 
   // fastest clocks, clock div 1
@@ -768,7 +767,7 @@ int8_t SI11xComponent::align(uint32_t *value_p, int8_t direction) {
  *     - Writes 0x12 to command reg to retrieve factory cal_index to
  *       buffer[12] to buffer[13]
  ******************************************************************************/
-int16_t SI11xComponent::si114x_get_calibration(SI114X_CAL_S *si114x_cal, uint8_t security) {
+int16_t SI11xComponent::si114x_get_calibration_(SI114X_CAL_S *si114x_cal, uint8_t security) {
   uint8_t buffer[14];
   int16_t retval = 0;
   uint8_t response;
@@ -907,7 +906,7 @@ error_exit:
  * @retval  <-1
  *   Error
  ******************************************************************************/
-int16_t SI11xComponent::si114x_set_ucoef(uint8_t *input_ucoef, SI114X_CAL_S *si114x_cal) {
+int16_t SI11xComponent::si114x_set_ucoef_(uint8_t *input_ucoef, SI114X_CAL_S *si114x_cal) {
   int8_t response;
   uint8_t temp;
   uint32_t vc = FX20_ONE, ic = FX20_ONE, long_temp;
@@ -967,7 +966,7 @@ int16_t SI11xComponent::si114x_set_ucoef(uint8_t *input_ucoef, SI114X_CAL_S *si1
 }
 /*****************************************************************************
  * @brief
- *   This is a helper function called from si114x_get_calibration()
+ *   This is a helper function called from si114x_get_calibration_()
  *   Writes 0x11 to the Command Register, then populates buffer[12]
  *   and buffer[13] with the factory calibration index
  ******************************************************************************/

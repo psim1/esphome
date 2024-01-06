@@ -7,8 +7,6 @@
 namespace esphome {
 namespace si11xx {
 
-
-
 // INCLUDE_SI114X_CALIBRATIONCODE
 #define FLT_TO_FX20(x) ((int32_t) ((x * 1048576) + .5))
 #define FX20_ONE FLT_TO_FX20(1.000000)
@@ -24,8 +22,6 @@ namespace si11xx {
 #define VISPD_ADCLO_WHLED (collect(buffer, 0x28, 0x29, 0))
 #define LIRPD_ADCHI_IRLED (collect(buffer, 0x29, 0x2a, 1))
 #define LED_DRV65 (collect(buffer, 0x2b, 0x2c, 0))
-
-
 
 typedef struct {
   uint32_t vispd_correction; /**< VIS Photodiode Correction        */
@@ -61,7 +57,7 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
   bool OutsideMode = true;
   uint8_t CoEfficientValues[4];
 
-protected:
+ protected:
   void set_light_sensor(sensor::Sensor *light_sensor) { this->light_sensor_ = light_sensor; }
   void set_als_sensor(sensor::Sensor *als_sensor) { this->als_sensor_ = als_sensor; }
   void set_uvi_sensor(sensor::Sensor *uvi_sensor) { this->uvi_sensor_ = uvi_sensor; }
@@ -89,15 +85,15 @@ protected:
   bool configuration_1132_();
   bool configuration_1145_();
   void set_ambient_light_params_();
-  void setInfraRedParams(void);
-  void setProximityParams(void);
+  void set_infrared_params_();
+  void set_proximity_params_();
   uint16_t writeI2c(uint8_t register_addr, uint8_t value);
   uint16_t readI2c(uint8_t register_addr, uint8_t num, uint8_t *buffer);
   uint8_t readI2c_8(uint8_t register_addr);
   uint16_t readI2c_16(uint8_t register_addr);
   void set_calibrated_coefficients_();
-  int16_t si114x_get_calibration(SI114X_CAL_S *si114x_cal, uint8_t security);
-  int16_t si114x_set_ucoef(uint8_t *input_ucoef, SI114X_CAL_S *si114x_cal);
+  int16_t si114x_get_calibration_(SI114X_CAL_S * /*si114x_cal*/, uint8_t /*security*/);
+  int16_t si114x_set_ucoef_(uint8_t * /*input_ucoef*/, SI114X_CAL_S * /*si114x_cal*/);
   int16_t si114x_get_cal_index(uint8_t *buffer);
   int16_t _waitUntilSleep(void);
   int16_t find_cal_index(uint8_t *buffer);
@@ -125,5 +121,5 @@ protected:
   } error_code_{NONE};
 };
 
-}  // namespace si11x
+}  // namespace si11xx
 }  // namespace esphome
