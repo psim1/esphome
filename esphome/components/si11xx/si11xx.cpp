@@ -199,18 +199,18 @@ void SI11xComponent::write_param_(uint8_t register_addr, uint8_t value) {
   this->send_command_(register_addr | SI_PARAM_SET);
 }
 
-// Special command handlint protocol
+// Special command handling protocol
 // Write 0x00 to command register, read and verify response
 // write command, read response regeister is non-zero
 bool SI11xComponent::send_command_(uint8_t value) {
   // set mode to reset
-  if (this->write_byte(SI_REG_COMMAND, 0x00)) {
-    uint8_t data;
-    if (this->read_byte(SI_REG_RESPONSE, &data) && data == 0x00) {
-      if (this->write_byte(SI_REG_COMMAND, value)) {
-        if (this->read_byte(SI_REG_RESPONSE, &data) && data != 0x00) {
+  if (this->set_value_(SI_REG_COMMAND, 0x00)) {
+    uint8_t data = this->read_value_(SI_REG_RESPONSE);
+    if (data == 0x00) {
+      if (this->set_value_(SI_REG_COMMAND, value)) {
+        data = this->read_value_(SI_REG_RESPONSE);
+        if (data != 0x00) {
           // successful
-          delay(SI11X_DELAY);
           return true;
         }
       }
