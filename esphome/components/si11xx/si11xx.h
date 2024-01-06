@@ -95,7 +95,7 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
   uint32_t irpd_correction_(uint8_t * /*buffer*/);
   uint32_t adcrange_ratio_(uint8_t * /*buffer*/);
   uint32_t irsize_ratio_(uint8_t * /*buffer*/);
-  int8_t align(uint32_t * /*value_p*/, int8_t /*direction*/);
+  int8_t align_(uint32_t * /*value_p*/, int8_t /*direction*/);
   void fx20_round(uint32_t *value_p);
   uint32_t fx20_multiply(struct operand_t *operand_p);
   uint32_t fx20_divide(struct operand_t *operand_p);
