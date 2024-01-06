@@ -215,6 +215,10 @@ bool SI11xComponent::send_command_(uint8_t register_or_value) {
     count++;
   }
 
+  if (response != 0) {
+    ESP_LOGW(TAG, "send_command_ failed to clear register for op: 0x%x", register_or_value);
+  }
+
   if (this->set_value_(SI_REG_COMMAND, register_or_value)) {
     wait_until_sleep_();
     response = this->read_value_(SI_REG_RESPONSE);
@@ -225,7 +229,7 @@ bool SI11xComponent::send_command_(uint8_t register_or_value) {
   }
 
   this->error_code_ = COMMAND_FAILED;
-  this->mark_failed();
+  this->status_momentary_error("command_failure", 1000);
   return false;
 }
 
@@ -329,10 +333,10 @@ void SI11xComponent::dump_config() {
   // ESP_LOGI(TAG, "Firmware Version: %d.%d.%d", this->firmware_ver_major_, this->firmware_ver_minor_,
   //          this->firmware_ver_build_);
   LOG_I2C_DEVICE(this);
-  ESP_LOGI(TAG, "Firmware Version: 0x%x %d.%d", this->device_type_, this->device_rev_, this->device_seq_);
+  ESP_LOGI(TAG, "Type: 0x%x Rev: %d Seq: %d", this->device_type_, this->device_rev_, this->device_seq_);
 
   LOG_SENSOR("  ", "Light Sensor:", this->light_sensor_);
-  LOG_SENSOR("  ", "ALS Sensor:", this->ir_sensor_);
+  LOG_SENSOR("  ", "IR Sensor:", this->ir_sensor_);
   LOG_SENSOR("  ", "UVI Sensor:", this->uvi_sensor_);
   LOG_SENSOR("  ", "UV Sensor:", this->uv_sensor_);
 
