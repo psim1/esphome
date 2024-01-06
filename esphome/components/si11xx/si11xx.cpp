@@ -310,9 +310,9 @@ void SI11xComponent::dump_config() {
     case VALIDITY_INVALID:
       ESP_LOGE(TAG, "Invalid Device Status - No valid output");
       break;
-    // case STD_OPMODE_FAILED:
-    //   ESP_LOGE(TAG, "Device failed to achieve Standard Operating Mode");
-    //   break;
+    case COMMAND_FAILED:
+      ESP_LOGE(TAG, "Device command failed");
+      break;
     case NONE:
       ESP_LOGD(TAG, "Setup successful");
       break;
