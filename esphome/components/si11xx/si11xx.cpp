@@ -25,8 +25,8 @@ static const uint8_t SI1145_DEVICE = 0x45;
 
 // Registers
 static const uint8_t SI_REG_HW_KEY = 0x07;
-static const uint8_t SI_REG_MEASRATE0 = 0x08;
-static const uint8_t SI_REG_MEASRATE1 = 0x09;
+static uint8_t SI_REG_MEASRATE0 = 0x08;
+static uint8_t SI_REG_MEASRATE1 = 0x09;
 static const uint8_t SI_REG_INTCFG = 0x03;
 static const uint8_t SI_REG_IRQEN = 0x04;
 static const uint8_t SI_REG_PSLED21 = 0x0F;
@@ -310,9 +310,9 @@ void SI11xComponent::dump_config() {
     case VALIDITY_INVALID:
       ESP_LOGE(TAG, "Invalid Device Status - No valid output");
       break;
-    case STD_OPMODE_FAILED:
-      ESP_LOGE(TAG, "Device failed to achieve Standard Operating Mode");
-      break;
+    // case STD_OPMODE_FAILED:
+    //   ESP_LOGE(TAG, "Device failed to achieve Standard Operating Mode");
+    //   break;
     case NONE:
       ESP_LOGD(TAG, "Setup successful");
       break;
@@ -375,6 +375,8 @@ bool SI11xComponent::configuration_1132_() {
   this->write_param_(SI_AUX_ADC_MUX_PARAM_OFFSET, SI_AUX_ADCMUX_TEMPERATURE);
 
   // Rate setting
+  uint32_t p = get_update_interval();
+
   this->set_value_(SI_REG_MEASRATE0, 0xFF);  // 255 * 31.25uS = 8ms
   this->set_value_(SI_REG_MEASRATE1, 0x00);  // 255 * 31.25uS = 8ms
 

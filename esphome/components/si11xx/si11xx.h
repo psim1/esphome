@@ -99,11 +99,11 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
   uint32_t adcrange_ratio_(uint8_t * /*buffer*/);
   uint32_t irsize_ratio_(uint8_t * /*buffer*/);
   int8_t align_(uint32_t * /*value_p*/, int8_t /*direction*/);
-  void fx20_round_(uint32_t */*value_p*/);
-  uint32_t fx20_multiply_(struct operand_t */*operand_p*/);
-  uint32_t fx20_divide_(struct operand_t */*operand_p*/);
-  uint32_t collect_(uint8_t */*buffer*/, uint8_t /*msb_addr*/, uint8_t /*lsb_addr*/, uint8_t /*alignment*/);
-  void shift_left_(uint32_t */*value_p*/, int8_t /*shift*/);
+  void fx20_round_(uint32_t * /*value_p*/);
+  uint32_t fx20_multiply_(struct operand_t * /*operand_p*/);
+  uint32_t fx20_divide_(struct operand_t * /*operand_p*/);
+  uint32_t collect_(uint8_t * /*buffer*/, uint8_t /*msb_addr*/, uint8_t /*lsb_addr*/, uint8_t /*alignment*/);
+  void shift_left_(uint32_t * /*value_p*/, int8_t /*shift*/);
   uint32_t decode_(uint32_t input);
 
   enum ErrorCode {
