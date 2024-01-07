@@ -198,7 +198,7 @@ uint16_t SI11xComponent::read_value16_(uint8_t reg) {
     this->mark_failed();
     return 0;
   }
-  ESP_LOGV(TAG, "read_value16_ msb:0x%02X lsb:0x%02X = %d", i, p, msb, lsb, (msb * 256) + lsb);
+  ESP_LOGD(TAG, "read_value16_ reg:%0x02x msb:0x%02X lsb:0x%02X = %d", reg, msb, lsb, (msb * 256) + lsb);
   delay(SI11X_DELAY);
   return (msb * 256) + lsb;
 }
@@ -563,7 +563,7 @@ uint16_t SI11xComponent::read_proximity() {
 */
 uint16_t SI11xComponent::read_uv() {
   uint16_t uv = this->read_value16_(SI_REG_UV_DATA);
-  this->convert_data_(uv);
+  //this->convert_data_(uv);
   return uv;
   // return this->convert_data_(uv);
 }
