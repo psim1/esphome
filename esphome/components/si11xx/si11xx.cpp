@@ -382,7 +382,7 @@ bool SI11xComponent::configuration_1132_() {
 
   // SET PARAM_WR(Chiplist)
   uint8_t Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
-  Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
+  Chiplist = SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
   this->write_param_(SI_CHIPLIST_PARAM_OFFSET, Chiplist);
 
   // SET PARAM_WR(ALS_ENCODING)
@@ -424,7 +424,7 @@ bool SI11xComponent::configuration_1145_() {
   // SET enabled sensors
   uint8_t Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
   if (this->proximity_led_attached_) {
-    Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS | SI_CHIPLIST_EN_PS1;
+    Chiplist |= SI_CHIPLIST_EN_PS1;
   }
   this->write_param_(SI_CHIPLIST_PARAM_OFFSET, Chiplist);
 
