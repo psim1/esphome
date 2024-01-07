@@ -340,7 +340,6 @@ void SI11xComponent::dump_config() {
   LOG_SENSOR("  ", "Light Sensor:", this->light_sensor_);
   LOG_SENSOR("  ", "IR Sensor:", this->ir_sensor_);
   LOG_SENSOR("  ", "UVI Sensor:", this->uvi_sensor_);
-  LOG_SENSOR("  ", "UV Sensor:", this->uv_sensor_);
 
   LOG_UPDATE_INTERVAL(this);
   this->read_config_();
