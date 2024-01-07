@@ -54,6 +54,8 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
   void set_light_sensor(sensor::Sensor *light_sensor) { this->light_sensor_ = light_sensor; }
   void set_ir_sensor(sensor::Sensor *ir_sensor) { this->ir_sensor_ = ir_sensor; }
   void set_uvi_sensor(sensor::Sensor *uvi_sensor) { this->uvi_sensor_ = uvi_sensor; }
+  
+  void set_outside_mode(bool mode) { this->outside_mode_ = mode; };
 
  protected:
   sensor::Sensor *light_sensor_{nullptr};

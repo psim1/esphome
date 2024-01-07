@@ -362,6 +362,7 @@ void SI11xComponent::get_device_type_() {
 void SI11xComponent::read_config_() {
   ESP_LOGI(TAG, "Type: 0x%x Rev: %d Seq: %d", this->device_type_, this->device_rev_, this->device_seq_);
   ESP_LOGD(TAG, "Measure rate: 0x%02X%02X", this->read_value_(SI_REG_MEASRATE1), this->read_value_(SI_REG_MEASRATE0));
+  ESP_LOGD(TAG, "Outside mode: %d", this->outside_mode_);
 
   uint32_t i = get_update_interval();
   uint32_t p = (int) (i / (2 * 31.25));
@@ -543,6 +544,7 @@ uint16_t SI11xComponent::read_proximity() {
 */
 uint16_t SI11xComponent::read_uv() {
   uint16_t uv = this->read_value16_(SI_REG_UV_DATA);
+  this->convert_data_(uv);
   return uv;
   // return this->convert_data_(uv);
 }

@@ -21,7 +21,7 @@ SI11xComponent = si11xx_ns.class_("SI11xComponent", cg.PollingComponent, i2c.I2C
 
 CONF_INFRA_RED = "infra_red"
 CONF_UV_INDEX = "uv_index"
-CONF_WINDOW_CORRECTION_FACTOR = "window_correction_factor"
+CONF_OUTSIDE = "outside_mode"
 
 UNIT_UVI = "UVI"
 
@@ -69,16 +69,12 @@ CONFIG_SCHEMA = cv.All(
                 device_class=DEVICE_CLASS_ILLUMINANCE,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
-            # cv.Optional(CONF_GAIN, default="X3"): cv.enum(GAIN_OPTIONS),
-            # cv.Optional(CONF_RESOLUTION, default=18): cv.enum(RES_OPTIONS),
-            cv.Optional(CONF_WINDOW_CORRECTION_FACTOR, default=1.0): cv.float_range(
-                min=1.0
-            ),
+            cv.Optional(CONF_OUTSIDE, default=False): cv.boolean,
         }
     )
     .extend(cv.polling_component_schema("60s"))
     .extend(i2c.i2c_device_schema(0x60)),
-    cv.has_at_least_one_key(CONF_LIGHT, CONF_INFRA_RED, CONF_UV_INDEX, CONF_UV),
+    cv.has_at_least_one_key(CONF_LIGHT, CONF_INFRA_RED, CONF_UV_INDEX),
 )
 
 TYPES = {
@@ -93,9 +89,7 @@ async def to_code(config):
     await cg.register_component(var, config)
     await i2c.register_i2c_device(var, config)
 
-    # cg.add(var.set_gain_value(config[CONF_GAIN]))
-    # cg.add(var.set_res_value(config[CONF_RESOLUTION]))
-    # cg.add(var.set_wfac_value(config[CONF_WINDOW_CORRECTION_FACTOR]))
+    cg.add(var.set_outside_mode(config[CONF_OUTSIDE]))
 
     for key, funcName in TYPES.items():
         if key in config:
