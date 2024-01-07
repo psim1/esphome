@@ -585,7 +585,7 @@ uint16_t SI11xComponent::convert_data_(uint16_t data) {
   // msb * 256 + lsb
   uint8_t lsb = data & 0x00FF;
   uint8_t msb = (data & 0xFF00) >> 8;
-  ESP_LOGD(TAG, "Conversion data:0x%04x (%d) msb:0x%02X lsb:0x%02X", data, msb, lsb);
+  ESP_LOGD(TAG, "Conversion data:0x%04x (%d) msb:0x%02X lsb:0x%02X", data, data, msb, lsb);
   return (msb * 256) + lsb;
 }
 
