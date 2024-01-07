@@ -8,7 +8,7 @@ namespace esphome {
 namespace si11xx {
 
 // INCLUDE_SI114X_CALIBRATIONCODE
-#define FLT_TO_FX20(x) (((int32_t) (((x) *1048576) + .5)))
+#define FLT_TO_FX20(x) (((int32_t) (((x) * 1048576) + .5)))
 #define FX20_ONE FLT_TO_FX20(1.000000)
 #define FX20_BAD_VALUE 0xffffffff
 
@@ -50,18 +50,15 @@ class SI11xComponent : public PollingComponent, public i2c::I2CDevice, public se
   // control behaviour of sensor
   bool proximity_led_attached_{false};
   bool outside_mode_{true};
-  uint8_t CoEfficientValues[4];
 
   void set_light_sensor(sensor::Sensor *light_sensor) { this->light_sensor_ = light_sensor; }
   void set_ir_sensor(sensor::Sensor *ir_sensor) { this->ir_sensor_ = ir_sensor; }
   void set_uvi_sensor(sensor::Sensor *uvi_sensor) { this->uvi_sensor_ = uvi_sensor; }
-  void set_uv_sensor(sensor::Sensor *uv_sensor) { this->uv_sensor_ = uv_sensor; }
 
  protected:
   sensor::Sensor *light_sensor_{nullptr};
   sensor::Sensor *ir_sensor_{nullptr};
   sensor::Sensor *uvi_sensor_{nullptr};
-  sensor::Sensor *uv_sensor_{nullptr};
 
  private:
   uint8_t device_type_{0};

@@ -222,7 +222,7 @@ bool SI11xComponent::send_command_(uint8_t register_or_value) {
   }
 
   if (this->set_value_(SI_REG_COMMAND, register_or_value)) {
-    wait_until_sleep_();
+    this->wait_until_sleep_();
     response = this->read_value_(SI_REG_RESPONSE);
     if (response != 0) {
       // successful
@@ -232,6 +232,7 @@ bool SI11xComponent::send_command_(uint8_t register_or_value) {
 
   this->error_code_ = COMMAND_FAILED;
   this->status_momentary_error("command_failure", 1000);
+  ESP_LOGE(TAG, "send_command_ failed for op: 0x%x", register_or_value);
   return false;
 }
 
@@ -272,18 +273,14 @@ void SI11xComponent::update() {
   // loop return sensor values
 
   // uv_sensor_ and uvi_sensor_
-  uint16_t data_uv = this->read_uv();
+  float data_uv = this->read_uv_index();
   if (this->status_has_error()) {
     ESP_LOGW(TAG, "Error reading UV data");
     this->status_set_warning();
     return;
   }
-  if (this->uv_sensor_ != nullptr) {
-    this->uv_sensor_->publish_state(data_uv);
-  }
   if (this->uvi_sensor_ != nullptr) {
-    float data_uvi = data_uv / 100.0;
-    this->uvi_sensor_->publish_state(data_uvi);
+    this->uvi_sensor_->publish_state(data_uv);
   }
 
   // ir_sensor_
@@ -576,8 +573,8 @@ uint16_t SI11xComponent::read_ir() {
 */
 uint16_t SI11xComponent::read_visible() {
   uint16_t visible = read_value16_(SI_REG_VISIBLE_DATA);
-  this->convert_data_(visible);
-  // visible = ((visible - 256) / 0.282) * 14.5;
+  // this->convert_data_(visible);
+  //  visible = ((visible - 256) / 0.282) * 14.5;
   return visible;
 }
 

@@ -5,7 +5,7 @@ from esphome.const import (
     CONF_ID,
     #    CONF_GAIN,
     CONF_LIGHT,
-    #    CONF_RESOLUTION,
+    ICON_GAUGE,
     UNIT_LUX,
     ICON_BRIGHTNESS_5,
     DEVICE_CLASS_ILLUMINANCE,
@@ -21,10 +21,8 @@ SI11xComponent = si11xx_ns.class_("SI11xComponent", cg.PollingComponent, i2c.I2C
 
 CONF_INFRA_RED = "infra_red"
 CONF_UV_INDEX = "uv_index"
-CONF_UV = "uv"
 CONF_WINDOW_CORRECTION_FACTOR = "window_correction_factor"
 
-UNIT_COUNTS = "#"
 UNIT_UVI = "UVI"
 
 # SI11XGAIN = si11xx_ns.enum("LTR390GAIN")
@@ -66,15 +64,8 @@ CONFIG_SCHEMA = cv.All(
             ),
             cv.Optional(CONF_UV_INDEX): sensor.sensor_schema(
                 unit_of_measurement=UNIT_UVI,
-                icon=ICON_BRIGHTNESS_5,
-                accuracy_decimals=5,
-                device_class=DEVICE_CLASS_ILLUMINANCE,
-                state_class=STATE_CLASS_MEASUREMENT,
-            ),
-            cv.Optional(CONF_UV): sensor.sensor_schema(
-                unit_of_measurement=UNIT_COUNTS,
-                icon=ICON_BRIGHTNESS_5,
-                accuracy_decimals=1,
+                icon=ICON_GAUGE,
+                accuracy_decimals=2,
                 device_class=DEVICE_CLASS_ILLUMINANCE,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
@@ -94,7 +85,6 @@ TYPES = {
     CONF_LIGHT: "set_light_sensor",
     CONF_INFRA_RED: "set_ir_sensor",
     CONF_UV_INDEX: "set_uvi_sensor",
-    CONF_UV: "set_uv_sensor",
 }
 
 
