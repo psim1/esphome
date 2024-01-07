@@ -198,7 +198,7 @@ uint16_t SI11xComponent::read_value16_(uint8_t reg) {
     this->mark_failed();
     return 0;
   }
-  ESP_LOGD(TAG, "read_value16_ reg:%0x02x msb:0x%02X lsb:0x%02X = %d", reg, msb, lsb, (msb * 256) + lsb);
+  ESP_LOGD(TAG, "read_value16_ reg:0x%02x msb:0x%02X lsb:0x%02X = %d", reg, msb, lsb, (msb * 256) + lsb);
   delay(SI11X_DELAY);
   return (msb * 256) + lsb;
 }
@@ -413,7 +413,7 @@ bool SI11xComponent::configuration_1132_() {
   this->set_infrared_params_();
 
   // SET AUX_ADCMUX for UV
-  this->write_param_(SI_AUX_ADC_MUX_PARAM_OFFSET, SI_AUX_ADCMUX_VOLTAGE);
+  this->write_param_(SI_AUX_ADC_MUX_PARAM_OFFSET, SI_AUX_ADCMUX_TEMPERATURE);
 
   // Rate setting.
   this->set_measure_rate_();
