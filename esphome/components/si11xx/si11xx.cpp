@@ -393,10 +393,10 @@ void SI11xComponent::read_config_() {
 bool SI11xComponent::configuration_1132_() {
   // enable UVindex measurement coefficients!
   // this->set_calibrated_coefficients_();
-  this->write_param_(SI_REG_UCOEFF0, 0x7B);
-  this->write_param_(SI_REG_UCOEFF1, 0x6B);
-  this->write_param_(SI_REG_UCOEFF2, 0x01);
-  this->write_param_(SI_REG_UCOEFF3, 0x00);
+  //this->write_param_(SI_REG_UCOEFF0, 0x7B);
+  //this->write_param_(SI_REG_UCOEFF1, 0x6B);
+  //this->write_param_(SI_REG_UCOEFF2, 0x01);
+  //this->write_param_(SI_REG_UCOEFF3, 0x00);
 
   // SET PARAM_WR(Chiplist)
   uint8_t Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
