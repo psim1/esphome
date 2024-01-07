@@ -186,15 +186,19 @@ uint8_t SI11xComponent::read_value_(uint8_t reg) {
 }*/
 
 uint16_t SI11xComponent::read_value16_(uint8_t reg) {
-  uint16_t data;
-  if (!this->read_bytes(reg, reinterpret_cast<uint8_t *>(&data), 2)) {
+  uint8_t lsb;
+  uint8_t msb;
+  if (!this->read_bytes(reg, &lsb)) {
+    this->error_code_ = READ_FAILED;
+    this->mark_failed();
+    return 0;
+  }
+  if (!this->read_bytes(reg + 1, &msb)) {
     this->error_code_ = READ_FAILED;
     this->mark_failed();
     return 0;
   }
   delay(SI11X_DELAY);
-  uint8_t msb = data & 0x00FF;
-  uint8_t lsb = (data & 0xFF00) >> 8;
   return (msb * 256) + lsb;
 }
 
