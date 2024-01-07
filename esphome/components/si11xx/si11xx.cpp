@@ -363,6 +363,7 @@ void SI11xComponent::read_config_() {
   ESP_LOGI(TAG, "Type: 0x%x Rev: %d Seq: %d", this->device_type_, this->device_rev_, this->device_seq_);
   ESP_LOGD(TAG, "Measure rate: 0x%02X%02X", this->read_value_(SI_REG_MEASRATE1), this->read_value_(SI_REG_MEASRATE0));
   ESP_LOGD(TAG, "Outside mode: %d", this->outside_mode_);
+  ESP_LOGD(TAG, "Proximity enabled: %d", this->proximity_led_attached_);
 
   uint32_t i = get_update_interval();
   uint32_t p = (int) (i / (2 * 31.25));
@@ -387,13 +388,13 @@ bool SI11xComponent::configuration_1132_() {
   // SET PARAM_WR(ALS_ENCODING)
   this->write_param_(SI_ALS_ENCODING_PARAM_OFFSET, SI_ALS_VIS_ALIGN | SI_ALS_IR_ALIGN);
 
-  /* Visible */
+  // Visible
   this->set_ambient_light_params_();
 
-  /* IR */
+  // IR
   this->set_infrared_params_();
 
-  // SET AUX_ADCMUX
+  // SET AUX_ADCMUX for UV
   this->write_param_(SI_AUX_ADC_MUX_PARAM_OFFSET, SI_AUX_ADCMUX_VOLTAGE);
 
   // Rate setting.
@@ -421,12 +422,11 @@ bool SI11xComponent::configuration_1145_() {
   this->write_param_(SI_REG_UCOEFF3, 0x00);
 
   // SET enabled sensors
+  uint8_t Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
   if (this->proximity_led_attached_) {
-    this->write_param_(SI_CHIPLIST_PARAM_OFFSET,
-                       SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_PS1 | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS);
-  } else {
-    this->write_param_(SI_CHIPLIST_PARAM_OFFSET, SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS);
+    Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS | SI_CHIPLIST_EN_PS1;
   }
+  this->write_param_(SI_CHIPLIST_PARAM_OFFSET, Chiplist);
 
   this->set_proximity_params_();
   this->set_infrared_params_();
