@@ -140,8 +140,9 @@ static const uint8_t SI_HIGH_SIGNAL_RANGE = 0x20;
 // ALS IR Adcmux SMALLIR
 static const uint8_t SI_ALS_IR_ADCMUX_SMALLIR = 0x00;
 
-// ALS IR Adcmux Temperature
+// ADCMUX options
 static const uint8_t SI_AUX_ADCMUX_TEMPERATURE = 0x65;
+static const uint8_t SI_AUX_ADCMUX_VOLTAGE = 0x75;
 
 // Parameter values
 static const uint8_t SI_PSLED12SEL_PS1NONE = 0x00;
@@ -392,7 +393,7 @@ bool SI11xComponent::configuration_1132_() {
   this->set_infrared_params_();
 
   // SET AUX_ADCMUX
-  this->write_param_(SI_AUX_ADC_MUX_PARAM_OFFSET, SI_AUX_ADCMUX_TEMPERATURE);
+  this->write_param_(SI_AUX_ADC_MUX_PARAM_OFFSET, SI_AUX_ADCMUX_VOLTAGE);
 
   // Rate setting.
   this->set_measure_rate_();
