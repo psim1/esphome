@@ -22,6 +22,7 @@ SI11xComponent = si11xx_ns.class_("SI11xComponent", cg.PollingComponent, i2c.I2C
 CONF_INFRA_RED = "infra_red"
 CONF_UV_INDEX = "uv_index"
 CONF_OUTSIDE = "outside_mode"
+CONF_PROXIMITY = "enable_proximity"
 
 UNIT_UVI = "UVI"
 
@@ -70,6 +71,7 @@ CONFIG_SCHEMA = cv.All(
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_OUTSIDE, default=False): cv.boolean,
+            cv.Optional(CONF_PROXIMITY, default=False): cv.boolean,
         }
     )
     .extend(cv.polling_component_schema("60s"))
@@ -90,6 +92,7 @@ async def to_code(config):
     await i2c.register_i2c_device(var, config)
 
     cg.add(var.set_outside_mode(config[CONF_OUTSIDE]))
+    cg.add(var.set_proximity_mode(config[CONF_PROXIMITY]))
 
     for key, funcName in TYPES.items():
         if key in config:

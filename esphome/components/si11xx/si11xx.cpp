@@ -380,8 +380,9 @@ bool SI11xComponent::configuration_1132_() {
   this->write_param_(SI_REG_UCOEFF3, 0x00);
 
   // SET PARAM_WR(Chiplist)
-  this->write_param_(SI_CHIPLIST_PARAM_OFFSET,
-                     SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS);
+  uint8_t Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
+  Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
+  this->write_param_(SI_CHIPLIST_PARAM_OFFSET, Chiplist);
 
   // SET PARAM_WR(ALS_ENCODING)
   this->write_param_(SI_ALS_ENCODING_PARAM_OFFSET, SI_ALS_VIS_ALIGN | SI_ALS_IR_ALIGN);
