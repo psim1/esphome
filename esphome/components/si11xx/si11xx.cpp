@@ -292,36 +292,36 @@ void SI11xComponent::setup() {
 void SI11xComponent::update() {
   // loop return sensor values
 
-  // uv_sensor_ and uvi_sensor_
-  float data_uv = this->read_uv_index();
-  if (this->status_has_error()) {
-    ESP_LOGW(TAG, "Error reading UV data");
-    this->status_set_warning();
-    return;
-  }
+  // uvi_sensor_
   if (this->uvi_sensor_ != nullptr) {
+    float data_uv = this->read_uv_index();
+    if (this->status_has_error()) {
+      ESP_LOGW(TAG, "Error reading UV Index data");
+      this->status_set_warning();
+      return;
+    }
     this->uvi_sensor_->publish_state(data_uv);
   }
 
   // ir_sensor_
-  uint16_t data_ir = this->read_ir();
-  if (this->status_has_error()) {
-    ESP_LOGW(TAG, "Error reading IR data");
-    this->status_set_warning();
-    return;
-  }
   if (this->ir_sensor_ != nullptr) {
+    uint16_t data_ir = this->read_ir();
+    if (this->status_has_error()) {
+      ESP_LOGW(TAG, "Error reading IR data");
+      this->status_set_warning();
+      return;
+    }
     this->ir_sensor_->publish_state(data_ir);
   }
 
   // light_sensor_
-  uint16_t data_light = read_visible();
-  if (this->status_has_error()) {
-    ESP_LOGW(TAG, "Error reading Visible light data");
-    this->status_set_warning();
-    return;
-  }
   if (this->light_sensor_ != nullptr) {
+    uint16_t data_light = read_visible();
+    if (this->status_has_error()) {
+      ESP_LOGW(TAG, "Error reading Visible light data");
+      this->status_set_warning();
+      return;
+    }
     this->light_sensor_->publish_state(data_light);
   }
 
@@ -394,27 +394,38 @@ void SI11xComponent::read_config_() {
 bool SI11xComponent::configuration_1132_() {
   // enable UVindex measurement coefficients!
   // this->set_calibrated_coefficients_();
-  this->set_value_(SI_REG_UCOEFF0, 0x7B);
-  this->set_value_(SI_REG_UCOEFF1, 0x6B);
-  this->set_value_(SI_REG_UCOEFF2, 0x01);
-  this->set_value_(SI_REG_UCOEFF3, 0x00);
+  if (this->uvi_sensor_ != nullptr) {
+    this->set_value_(SI_REG_UCOEFF0, 0x7B);
+    this->set_value_(SI_REG_UCOEFF1, 0x6B);
+    this->set_value_(SI_REG_UCOEFF2, 0x01);
+    this->set_value_(SI_REG_UCOEFF3, 0x00);
+  }
 
   // SET PARAM_WR(Chiplist)
   // uint8_t Chiplist = SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
-  uint8_t Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
+  uint8_t Chiplist = 0;  // SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
+  if (this->light_sensor_ != nullptr)
+    Chiplist |= SI_CHIPLIST_EN_ALS_VIS;
+  if (this->ir_sensor_ != nullptr)
+    Chiplist |= SI_CHIPLIST_EN_ALS_IR;
+  if (this->uvi_sensor_ != nullptr)
+    Chiplist |= SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_AUX;
   this->write_param_(SI_CHIPLIST_PARAM_OFFSET, Chiplist);
 
   // SET PARAM_WR(ALS_ENCODING)
-  //this->write_param_(SI_ALS_ENCODING_PARAM_OFFSET, SI_ALS_VIS_ALIGN | SI_ALS_IR_ALIGN);
+  // this->write_param_(SI_ALS_ENCODING_PARAM_OFFSET, SI_ALS_VIS_ALIGN | SI_ALS_IR_ALIGN);
 
   // Visible
-  this->set_ambient_light_params_();
+  if (this->light_sensor_ != nullptr)
+    this->set_ambient_light_params_();
 
   // IR
-  this->set_infrared_params_();
+  if (this->ir_sensor_ != nullptr)
+    this->set_infrared_params_();
 
   // SET AUX_ADCMUX for UV
-  //this->write_param_(SI_AUX_ADC_MUX_PARAM_OFFSET, SI_AUX_ADCMUX_TEMPERATURE);
+  // if (this->uvi_sensor_ != nullptr)
+  // this->write_param_(SI_AUX_ADC_MUX_PARAM_OFFSET, SI_AUX_ADCMUX_TEMPERATURE);
 
   // Rate setting.
   this->set_measure_rate_();
