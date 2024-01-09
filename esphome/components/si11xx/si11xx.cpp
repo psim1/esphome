@@ -175,7 +175,7 @@ uint8_t SI11xComponent::read_value_(uint8_t reg) {
   return data;
 }
 
-uint16_t SI11xComponent::read_value16_(uint8_t reg) {
+/*uint16_t SI11xComponent::read_value16_(uint8_t reg) {
   uint16_t data;
   if (!this->read_byte_16(reg, &data)) {
     this->error_code_ = READ_FAILED;
@@ -184,9 +184,9 @@ uint16_t SI11xComponent::read_value16_(uint8_t reg) {
   }
   delay(SI11X_DELAY);
   return data;
-}
+}*/
 
-/*uint16_t SI11xComponent::read_value16_(uint8_t reg) {
+uint16_t SI11xComponent::read_value16_(uint8_t reg) {
   uint8_t lsb;
   uint8_t msb;
   if (!this->read_byte(reg, &lsb)) {
@@ -199,10 +199,10 @@ uint16_t SI11xComponent::read_value16_(uint8_t reg) {
     this->mark_failed();
     return 0;
   }
-  //ESP_LOGD(TAG, "read_value16_ reg:0x%02x msb:0x%02X lsb:0x%02X = %d", reg, msb, lsb, (msb * 256) + lsb);
+  // ESP_LOGD(TAG, "read_value16_ reg:0x%02x msb:0x%02X lsb:0x%02X = %d", reg, msb, lsb, (msb * 256) + lsb);
   delay(SI11X_DELAY);
   return (msb * 256) + lsb;
-}*/
+}
 
 // Set any register value and handle errors
 bool SI11xComponent::set_value_(uint8_t reg, uint8_t mode) {
