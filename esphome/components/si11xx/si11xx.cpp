@@ -405,7 +405,7 @@ bool SI11xComponent::configuration_1132_() {
   this->write_param_(SI_CHIPLIST_PARAM_OFFSET, Chiplist);
 
   // SET PARAM_WR(ALS_ENCODING)
-  this->write_param_(SI_ALS_ENCODING_PARAM_OFFSET, SI_ALS_VIS_ALIGN | SI_ALS_IR_ALIGN);
+  //this->write_param_(SI_ALS_ENCODING_PARAM_OFFSET, SI_ALS_VIS_ALIGN | SI_ALS_IR_ALIGN);
 
   // Visible
   this->set_ambient_light_params_();
@@ -414,7 +414,7 @@ bool SI11xComponent::configuration_1132_() {
   this->set_infrared_params_();
 
   // SET AUX_ADCMUX for UV
-  this->write_param_(SI_AUX_ADC_MUX_PARAM_OFFSET, SI_AUX_ADCMUX_TEMPERATURE);
+  //this->write_param_(SI_AUX_ADC_MUX_PARAM_OFFSET, SI_AUX_ADCMUX_TEMPERATURE);
 
   // Rate setting.
   this->set_measure_rate_();
