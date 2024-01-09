@@ -400,8 +400,8 @@ bool SI11xComponent::configuration_1132_() {
   this->set_value_(SI_REG_UCOEFF3, 0x00);
 
   // SET PARAM_WR(Chiplist)
-  uint8_t Chiplist = SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
-  // uint8_t Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
+  // uint8_t Chiplist = SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
+  uint8_t Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
   this->write_param_(SI_CHIPLIST_PARAM_OFFSET, Chiplist);
 
   // SET PARAM_WR(ALS_ENCODING)
@@ -435,10 +435,10 @@ bool SI11xComponent::configuration_1132_() {
 bool SI11xComponent::configuration_1145_() {
   // enable UVindex measurement coefficients!
   // this->set_calibrated_coefficients_();
-  this->write_param_(SI_REG_UCOEFF0, 0x29);
-  this->write_param_(SI_REG_UCOEFF1, 0x89);
-  this->write_param_(SI_REG_UCOEFF2, 0x02);
-  this->write_param_(SI_REG_UCOEFF3, 0x00);
+  this->set_value_(SI_REG_UCOEFF0, 0x29);
+  this->set_value_(SI_REG_UCOEFF1, 0x89);
+  this->set_value_(SI_REG_UCOEFF2, 0x02);
+  this->set_value_(SI_REG_UCOEFF3, 0x00);
 
   // SET enabled sensors
   uint8_t Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
