@@ -41,7 +41,8 @@ static const uint8_t SI_REG_UCOEFF2 = 0x15;
 static const uint8_t SI_REG_UCOEFF3 = 0x16;
 
 // Commands
-static const uint8_t SI_REG_PARAMWR = 0x17;
+static const uint8_t SI_REG_PARAM_WR = 0x17;
+static const uint8_t SI_REG_PARAM_RD = 0x2E;
 static const uint8_t SI_REG_COMMAND = 0x18;
 static const uint8_t SI_REG_RESPONSE = 0x20;
 
@@ -216,7 +217,7 @@ bool SI11xComponent::set_value_(uint8_t reg, uint8_t mode) {
 }
 
 void SI11xComponent::write_param_(uint8_t register_addr, uint8_t value) {
-  this->set_value_(SI_REG_PARAMWR, value);
+  this->set_value_(SI_REG_PARAM_WR, value);
   this->send_command_(register_addr | SI_PARAM_SET);
 }
 
@@ -393,14 +394,14 @@ void SI11xComponent::read_config_() {
 bool SI11xComponent::configuration_1132_() {
   // enable UVindex measurement coefficients!
   // this->set_calibrated_coefficients_();
-  //this->write_param_(SI_REG_UCOEFF0, 0x7B);
-  //this->write_param_(SI_REG_UCOEFF1, 0x6B);
-  //this->write_param_(SI_REG_UCOEFF2, 0x01);
-  //this->write_param_(SI_REG_UCOEFF3, 0x00);
+  this->set_value_(SI_REG_UCOEFF0, 0x7B);
+  this->set_value_(SI_REG_UCOEFF1, 0x6B);
+  this->set_value_(SI_REG_UCOEFF2, 0x01);
+  this->set_value_(SI_REG_UCOEFF3, 0x00);
 
   // SET PARAM_WR(Chiplist)
-  uint8_t Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
-  //Chiplist = SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
+  uint8_t Chiplist = SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
+  // uint8_t Chiplist = SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_AUX | SI_CHIPLIST_EN_ALS_IR | SI_CHIPLIST_EN_ALS_VIS;
   this->write_param_(SI_CHIPLIST_PARAM_OFFSET, Chiplist);
 
   // SET PARAM_WR(ALS_ENCODING)
@@ -563,7 +564,7 @@ uint16_t SI11xComponent::read_proximity() {
 */
 uint16_t SI11xComponent::read_uv() {
   uint16_t uv = this->read_value16_(SI_REG_UV_DATA);
-  //this->convert_data_(uv);
+  // this->convert_data_(uv);
   return uv;
   // return this->convert_data_(uv);
 }
