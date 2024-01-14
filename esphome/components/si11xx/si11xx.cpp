@@ -409,7 +409,7 @@ bool SI11xComponent::configuration_1132_() {
   if (this->ir_sensor_ != nullptr)
     Chiplist |= SI_CHIPLIST_EN_ALS_IR;
   if (this->uvi_sensor_ != nullptr)
-    Chiplist |= SI_CHIPLIST_EN_UV | SI_CHIPLIST_EN_AUX;
+    Chiplist |= /*SI_CHIPLIST_EN_UV |*/ SI_CHIPLIST_EN_AUX;
   this->write_param_(SI_CHIPLIST_PARAM_OFFSET, Chiplist);
 
   // SET PARAM_WR(ALS_ENCODING)
